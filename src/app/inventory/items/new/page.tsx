@@ -4,14 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createInventoryItemAction } from "@/lib/actions/inventory";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { INVENTORY_CATEGORIES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewInventoryItemPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "inventory.manage");
 
   return (
     <AppShell profile={profile}>

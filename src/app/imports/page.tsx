@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { ImportValidator } from "./import-validator";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportsPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "import.manage");
 
   return (
     <AppShell profile={profile}>
@@ -40,17 +41,55 @@ export default async function ImportsPage() {
           </div>
         </div>
       </section>
+      <Card className="mb-5">
+        <CardHeader>
+          <CardTitle>经营数据导入</CardTitle>
+          <CardDescription>先导入库存、采购和配方，再导入订单，系统才能完整联动销售、库存和财务。</CardDescription>
+        </CardHeader>
+        <CardContent>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-md border border-[#e7d9c8] bg-white/65 p-4">
+            <h2 className="font-semibold text-stone-950">库存管理表导入</h2>
+            <p className="mt-1 min-h-10 text-sm text-stone-600">建立原料档案、成本、安全库存，并可用实际库存生成盘点调整。</p>
+            <Button asChild className="mt-4" size="sm">
+              <Link href="/imports/inventory">进入库存导入</Link>
+            </Button>
+          </div>
+          <div className="rounded-md border border-[#e7d9c8] bg-white/65 p-4">
+            <h2 className="font-semibold text-stone-950">采购表导入</h2>
+            <p className="mt-1 min-h-10 text-sm text-stone-600">按供应商、日期和付款方式生成采购单，同步库存入库与现金支出。</p>
+            <Button asChild className="mt-4" size="sm">
+              <Link href="/imports/purchases">进入采购导入</Link>
+            </Button>
+          </div>
+          <div className="rounded-md border border-[#e7d9c8] bg-white/65 p-4">
+            <h2 className="font-semibold text-stone-950">配方表导入</h2>
+            <p className="mt-1 min-h-10 text-sm text-stone-600">批量维护产品配方，为订单导入后的自动扣库存和毛利计算打底。</p>
+            <Button asChild className="mt-4" size="sm">
+              <Link href="/imports/recipes">进入配方导入</Link>
+            </Button>
+          </div>
+        </div>
+        </CardContent>
+      </Card>
       <ImportValidator />
-      <section className="mt-5 rounded-md border border-stone-200 bg-white p-5">
-        <h2 className="font-semibold">标准模板</h2>
+      <Card className="mt-5">
+        <CardHeader>
+          <CardTitle>标准模板</CardTitle>
+          <CardDescription>下载模板后按字段填入真实数据，再回到对应导入页上传。</CardDescription>
+        </CardHeader>
+        <CardContent>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/inventory-items" prefetch={false}>原料模板</Link></Button>
+          <Button asChild variant="secondary" size="sm"><Link href="/api/templates/inventory-import" prefetch={false}>库存导入模板</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/products" prefetch={false}>产品模板</Link></Button>
+          <Button asChild variant="secondary" size="sm"><Link href="/api/templates/recipes" prefetch={false}>配方模板</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/employees" prefetch={false}>员工模板</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/purchases" prefetch={false}>采购明细模板</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/sales-batch" prefetch={false}>销售批量模板</Link></Button>
         </div>
-      </section>
+        </CardContent>
+      </Card>
     </AppShell>
   );
 }

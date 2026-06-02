@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createProductAliasAction, deleteProductAliasAction } from "@/lib/actions/products";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listProductAliases, listProducts } from "@/lib/data/products";
 import { formatMoney } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProductAliasesPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "product.manage");
   const [products, aliases] = await Promise.all([listProducts(), listProductAliases()]);
 
   return (

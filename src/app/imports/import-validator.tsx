@@ -47,7 +47,9 @@ export function ImportValidator() {
           <label className="text-sm font-medium text-stone-700" htmlFor="template">模板类型</label>
           <Select id="template" name="template" defaultValue="inventory-items">
             <option value="inventory-items">原料</option>
+            <option value="inventory-import">库存导入</option>
             <option value="products">产品</option>
+            <option value="recipes">配方</option>
             <option value="employees">员工</option>
             <option value="purchases">采购明细</option>
             <option value="sales-batch">销售批量</option>

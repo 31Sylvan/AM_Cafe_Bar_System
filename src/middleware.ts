@@ -32,12 +32,16 @@ export async function middleware(request: NextRequest) {
 
   const isLoginRoute = request.nextUrl.pathname === "/login";
   const isPublicApiRoute = request.nextUrl.pathname === "/api/health";
+  const isPublicAssetRoute =
+    request.nextUrl.pathname.startsWith("/_next") ||
+    request.nextUrl.pathname.startsWith("/favicon") ||
+    request.nextUrl.pathname.startsWith("/manifest") ||
+    request.nextUrl.pathname === "/sw.js" ||
+    request.nextUrl.pathname === "/icon.svg";
   const isAppRoute =
     !isLoginRoute &&
     !isPublicApiRoute &&
-    !request.nextUrl.pathname.startsWith("/_next") &&
-    !request.nextUrl.pathname.startsWith("/favicon") &&
-    !request.nextUrl.pathname.startsWith("/manifest");
+    !isPublicAssetRoute;
 
   if (!user && isAppRoute) {
     const url = request.nextUrl.clone();

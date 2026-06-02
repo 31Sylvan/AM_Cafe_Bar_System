@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const purchaseSchema = z.object({
@@ -14,6 +14,7 @@ const purchaseSchema = z.object({
 
 export async function createPurchaseOrderAction(formData: FormData) {
   const profile = await requireProfile();
+  requirePermission(profile, "purchase.create");
   const payload = purchaseSchema.parse(Object.fromEntries(formData));
   const lines = Array.from(formData.entries())
     .filter(([key, value]) => key.startsWith("qty:") && String(value).trim() !== "")
@@ -83,7 +84,7 @@ export async function createPurchaseOrderAction(formData: FormData) {
 
 export async function voidPurchaseOrderAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "purchase.void");
   const purchaseOrderId = z.string().uuid().parse(formData.get("purchase_order_id"));
 
   if (!hasSupabaseEnv()) {

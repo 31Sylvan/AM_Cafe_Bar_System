@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+  --background: #f7f3ec;
+  --foreground: #211815;
+  --card: #fffaf3;
+  --muted: #78716c;
+  --line: #e7d9c8;
+  --brand: #0f3d32;
+  --brand-strong: #0b2f27;
+  --accent: #c97935;
+  --accent-soft: #f3dfc7;
+  --radius-md: 8px;
+  --control-height: 40px;
+  --icon-stroke: 2;
 }
 
 @theme inline {
@@ -15,10 +25,69 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
 input,
 select {
   font: inherit;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.lucide {
+  stroke-width: var(--icon-stroke);
+}
+
+@layer base {
+  a {
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.18em;
+  }
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+}
+
+@layer components {
+  .app-card {
+    border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.75) inset,
+      0 14px 40px rgb(45 28 18 / 0.06);
+  }
+
+  .app-card-header {
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--card) 95%, white), color-mix(in srgb, var(--card) 70%, transparent));
+  }
+
+  .table-surface {
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+    background: color-mix(in srgb, var(--card) 95%, transparent);
+    box-shadow: 0 14px 34px rgb(45 28 18 / 0.05);
+  }
+
+  .table-surface thead {
+    background: color-mix(in srgb, var(--accent-soft) 55%, var(--card));
+    color: color-mix(in srgb, var(--brand) 72%, #6b5b4f);
+  }
+
+  .table-surface tbody tr {
+    transition: background-color 140ms ease;
+  }
+
+  .table-surface tbody tr:hover {
+    background: color-mix(in srgb, var(--accent-soft) 45%, var(--card));
+  }
 }

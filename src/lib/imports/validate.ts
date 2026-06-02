@@ -2,7 +2,7 @@ import { EXPENSE_CATEGORIES, INVENTORY_CATEGORIES, PAYMENT_METHODS, PRODUCT_CATE
 import type { InventoryCategory, InventoryUnit, PaymentMethod, ProductCategory, SalesChannel } from "@/lib/types";
 import { parseCsv } from "./csv";
 
-export type ImportTemplate = "inventory-items" | "products" | "employees" | "purchases" | "sales-batch";
+export type ImportTemplate = "inventory-items" | "inventory-import" | "products" | "recipes" | "employees" | "purchases" | "sales-batch";
 
 export type ImportValidationResult = {
   template: ImportTemplate;
@@ -15,7 +15,9 @@ export type ImportValidationResult = {
 
 const requiredHeaders: Record<ImportTemplate, string[]> = {
   "inventory-items": ["name", "category", "unit", "safe_stock", "cost_price"],
+  "inventory-import": ["name", "category", "unit", "safe_stock", "cost_price", "actual_qty"],
   products: ["name", "category", "sale_price"],
+  recipes: ["product_name", "item_name", "qty", "unit"],
   employees: ["name", "position", "hourly_rate", "hire_date"],
   purchases: ["supplier", "purchase_date", "item_name", "qty", "unit_price"],
   "sales-batch": ["sale_date", "channel", "payment_method", "product_name", "qty", "unit_price"],
@@ -23,7 +25,9 @@ const requiredHeaders: Record<ImportTemplate, string[]> = {
 
 const optionalHeaders: Record<ImportTemplate, string[]> = {
   "inventory-items": ["specification", "status"],
+  "inventory-import": ["specification", "status"],
   products: ["status"],
+  recipes: [],
   employees: ["phone", "status"],
   purchases: [],
   "sales-batch": ["external_order_no"],
@@ -77,7 +81,7 @@ export function validateImportCsv(template: ImportTemplate, csv: string): Import
     const rowNo = index + 2;
     const rowErrors: string[] = [];
 
-    if (template === "inventory-items") {
+    if (template === "inventory-items" || template === "inventory-import") {
       if (!row.name) rowErrors.push("name 不能为空");
       if (row.name && seenNames.has(row.name)) rowErrors.push(`原料名称重复：${row.name}`);
       if (row.name) seenNames.add(row.name);
@@ -86,6 +90,7 @@ export function validateImportCsv(template: ImportTemplate, csv: string): Import
       if (!units?.includes(row.unit as InventoryUnit)) rowErrors.push("unit 与 category 不匹配");
       if (!isNonNegativeNumber(row.safe_stock)) rowErrors.push("safe_stock 必须为非负数");
       if (!isNonNegativeNumber(row.cost_price)) rowErrors.push("cost_price 必须为非负数");
+      if (template === "inventory-import" && !isNonNegativeNumber(row.actual_qty)) rowErrors.push("actual_qty 必须为非负数");
     }
 
     if (template === "products") {
@@ -94,6 +99,13 @@ export function validateImportCsv(template: ImportTemplate, csv: string): Import
       if (row.name) seenNames.add(row.name);
       if (!PRODUCT_CATEGORIES.includes(row.category as ProductCategory)) rowErrors.push("category 不在允许范围");
       if (!isPositiveNumber(row.sale_price)) rowErrors.push("sale_price 必须为正数");
+    }
+
+    if (template === "recipes") {
+      if (!row.product_name) rowErrors.push("product_name 不能为空");
+      if (!row.item_name) rowErrors.push("item_name 不能为空");
+      if (!isPositiveNumber(row.qty)) rowErrors.push("qty 必须为正数");
+      if (!["g", "ml", "pcs"].includes(row.unit)) rowErrors.push("unit 不在允许范围");
     }
 
     if (template === "employees") {

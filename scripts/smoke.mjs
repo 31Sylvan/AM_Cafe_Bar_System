@@ -1,6 +1,21 @@
 import * as XLSX from "xlsx";
+import { existsSync, readFileSync } from "node:fs";
 
 const baseUrl = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
+const localEnv = existsSync(".env.local") ? readFileSync(".env.local", "utf8") : "";
+const localEnvMap = Object.fromEntries(
+  localEnv
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#") && line.includes("="))
+    .map((line) => {
+      const index = line.indexOf("=");
+      return [line.slice(0, index), line.slice(index + 1)];
+    }),
+);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? localEnvMap.NEXT_PUBLIC_SUPABASE_URL;
+const demoLoginEnabled = process.env.DEMO_LOGIN_ENABLED ?? localEnvMap.DEMO_LOGIN_ENABLED;
+const demoAuthEnabled = demoLoginEnabled !== "false" && !supabaseUrl;
 
 function orderWorkbookBlob() {
   const rows = [
@@ -27,6 +42,41 @@ function productWorkbookBlob() {
   return new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+function inventoryWorkbookBlob() {
+  const rows = [
+    ["name", "category", "unit", "specification", "safe_stock", "cost_price", "actual_qty", "status"],
+    ["中深烘咖啡豆", "咖啡豆", "g", "1kg/袋", 800, 0.18, 2500, "active"],
+    ["全脂牛奶", "奶类", "ml", "1L/盒", 3000, 0.012, 12000, "active"],
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Worksheet");
+  const data = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  return new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+function purchaseWorkbookBlob() {
+  const rows = [
+    ["supplier", "purchase_date", "payment_method", "item_name", "qty", "unit_price"],
+    ["本地烘焙商", "2026-06-01", "微信", "中深烘咖啡豆", 2000, 0.38],
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Worksheet");
+  const data = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  return new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+function recipeWorkbookBlob() {
+  const rows = [
+    ["product_name", "item_name", "qty", "unit"],
+    ["拿铁", "中深烘咖啡豆", 18, "g"],
+    ["拿铁", "全脂牛奶", 250, "ml"],
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Worksheet");
+  const data = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  return new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
 const checks = [
   {
     name: "health",
@@ -38,7 +88,7 @@ const checks = [
     name: "login page",
     url: "/login",
     options: {},
-    expect: (body) => body.includes("owner@aromamelody.local"),
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
   },
   {
     name: "pwa manifest",
@@ -52,7 +102,7 @@ const checks = [
     options: {},
     expect: (body) => body.includes("coffee-shop-os-v1") && body.includes("fetch"),
   },
-  {
+  ...(demoAuthEnabled ? [{
     name: "dashboard demo auth",
     url: "/dashboard",
     options: {
@@ -81,6 +131,26 @@ const checks = [
       },
     },
     expect: (body) => body.includes("name,category,unit") && body.includes("safe_stock"),
+  },
+  {
+    name: "inventory import template demo auth",
+    url: "/api/templates/inventory-import",
+    options: {
+      headers: {
+        cookie: "coffee-shop-os-demo-auth=owner",
+      },
+    },
+    expect: (body) => body.includes("actual_qty") && body.includes("中深烘咖啡豆"),
+  },
+  {
+    name: "recipe template demo auth",
+    url: "/api/templates/recipes",
+    options: {
+      headers: {
+        cookie: "coffee-shop-os-demo-auth=owner",
+      },
+    },
+    expect: (body) => body.includes("product_name,item_name,qty,unit") && body.includes("拿铁"),
   },
   {
     name: "import validation demo auth",
@@ -115,6 +185,54 @@ const checks = [
       })(),
     },
     expect: (body) => body.includes('"validRows":1') && body.includes("销售批量录入"),
+  },
+  {
+    name: "inventory workbook preview demo auth",
+    url: "/api/imports/inventory/preview",
+    options: {
+      method: "POST",
+      headers: {
+        cookie: "coffee-shop-os-demo-auth=owner",
+      },
+      body: (() => {
+        const formData = new FormData();
+        formData.set("file", inventoryWorkbookBlob(), "库存导入表.xlsx");
+        return formData;
+      })(),
+    },
+    expect: (body) => body.includes('"importableCount":2') && body.includes("中深烘咖啡豆"),
+  },
+  {
+    name: "purchase workbook preview demo auth",
+    url: "/api/imports/purchases/preview",
+    options: {
+      method: "POST",
+      headers: {
+        cookie: "coffee-shop-os-demo-auth=owner",
+      },
+      body: (() => {
+        const formData = new FormData();
+        formData.set("file", purchaseWorkbookBlob(), "采购导入表.xlsx");
+        return formData;
+      })(),
+    },
+    expect: (body) => body.includes('"importableCount":1') && body.includes("本地烘焙商"),
+  },
+  {
+    name: "recipe workbook preview demo auth",
+    url: "/api/imports/recipes/preview",
+    options: {
+      method: "POST",
+      headers: {
+        cookie: "coffee-shop-os-demo-auth=owner",
+      },
+      body: (() => {
+        const formData = new FormData();
+        formData.set("file", recipeWorkbookBlob(), "配方导入表.xlsx");
+        return formData;
+      })(),
+    },
+    expect: (body) => body.includes('"importableCount":2') && body.includes("全脂牛奶"),
   },
   {
     name: "real order workbook preview demo auth",
@@ -280,7 +398,7 @@ const checks = [
       },
     },
     expect: (body) => body.includes("经营异常中心") && body.includes("异常总数"),
-  },
+  }] : []),
 ];
 
 for (const check of checks) {

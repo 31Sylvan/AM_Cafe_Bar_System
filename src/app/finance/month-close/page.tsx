@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createMonthCloseSnapshotAction } from "@/lib/actions/finance";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listMonthCloseSnapshots } from "@/lib/data/finance";
 import { formatMoney } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MonthClosePage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.manage");
   const rows = await listMonthCloseSnapshots();
   const defaultMonth = new Date().toISOString().slice(0, 7);
 

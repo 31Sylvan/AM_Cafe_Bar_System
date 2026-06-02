@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const saleSchema = z.object({
@@ -25,6 +25,7 @@ const stockCountSchema = z.object({
 
 export async function createSaleOrderAction(formData: FormData) {
   const profile = await requireProfile();
+  requirePermission(profile, "sales.create");
   const payload = saleSchema.parse(Object.fromEntries(formData));
   const lines = Array.from(formData.entries())
     .filter(([key, value]) => key.startsWith("qty:") && String(value).trim() !== "")
@@ -87,7 +88,7 @@ export async function createSaleOrderAction(formData: FormData) {
 
 export async function voidSaleOrderAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "sales.void");
   const salesOrderId = z.string().uuid().parse(formData.get("sales_order_id"));
 
   if (!hasSupabaseEnv()) {
@@ -113,6 +114,7 @@ export async function voidSaleOrderAction(formData: FormData) {
 
 export async function createWasteRecordAction(formData: FormData) {
   const profile = await requireProfile();
+  requirePermission(profile, "waste.create");
   const payload = wasteSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
@@ -165,6 +167,7 @@ export async function createWasteRecordAction(formData: FormData) {
 
 export async function createStockCountAction(formData: FormData) {
   const profile = await requireProfile();
+  requirePermission(profile, "stock_count.create");
   const payload = stockCountSchema.parse(Object.fromEntries(formData));
   const actualEntries = Array.from(formData.entries())
     .filter(([key, value]) => key.startsWith("actual_qty:") && String(value).trim() !== "")

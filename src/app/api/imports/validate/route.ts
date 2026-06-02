@@ -4,7 +4,7 @@ import { validateImportCsv, type ImportTemplate } from "@/lib/imports/validate";
 
 export const dynamic = "force-dynamic";
 
-const templates = new Set<ImportTemplate>(["inventory-items", "products", "employees", "purchases", "sales-batch"]);
+const templates = new Set<ImportTemplate>(["inventory-items", "inventory-import", "products", "recipes", "employees", "purchases", "sales-batch"]);
 
 export async function POST(request: Request) {
   await requireProfile();

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CATEGORY_UNITS } from "@/lib/constants";
-import { requireProfile, requireOwner } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import type { InventoryCategory, InventoryUnit } from "@/lib/types";
 
@@ -19,7 +19,7 @@ const inventoryItemSchema = z.object({
 
 export async function createInventoryItemAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "inventory.manage");
 
   const payload = inventoryItemSchema.parse(Object.fromEntries(formData));
   const allowedUnits = CATEGORY_UNITS[payload.category as InventoryCategory];

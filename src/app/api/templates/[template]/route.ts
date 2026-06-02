@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwner } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { getCurrentProfile } from "@/lib/auth";
 import { csvResponse, toCsv } from "@/lib/export/csv";
 
@@ -11,10 +11,26 @@ const templates = {
     headers: ["name", "category", "unit", "specification", "safe_stock", "cost_price", "status"],
     rows: [["中深烘咖啡豆", "咖啡豆", "g", "1kg/袋", "800", "0.18", "active"]],
   },
+  "inventory-import": {
+    filename: "inventory-import-template.csv",
+    headers: ["name", "category", "unit", "specification", "safe_stock", "cost_price", "actual_qty", "status"],
+    rows: [
+      ["中深烘咖啡豆", "咖啡豆", "g", "1kg/袋", "800", "0.18", "2500", "active"],
+      ["全脂牛奶", "奶类", "ml", "1L/盒", "3000", "0.012", "12000", "active"],
+    ],
+  },
   products: {
     filename: "products-template.csv",
     headers: ["name", "category", "sale_price", "status"],
     rows: [["拿铁", "咖啡", "28", "active"]],
+  },
+  recipes: {
+    filename: "recipes-template.csv",
+    headers: ["product_name", "item_name", "qty", "unit"],
+    rows: [
+      ["拿铁", "中深烘咖啡豆", "18", "g"],
+      ["拿铁", "全脂牛奶", "250", "ml"],
+    ],
   },
   employees: {
     filename: "employees-template.csv",
@@ -39,7 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tem
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  requireOwner(profile);
+  requirePermission(profile, "import.manage");
 
   const { template } = await params;
   const config = templates[template as keyof typeof templates];

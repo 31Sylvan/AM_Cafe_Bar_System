@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listEmployees } from "@/lib/data/staff";
 import { formatMoney } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EmployeesPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "employee.view");
   const employees = await listEmployees();
 
   return (

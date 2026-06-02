@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { previewOrderWorkbooks } from "@/lib/imports/order-xls";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "import.manage");
 
   const formData = await request.formData();
   const files = formData.getAll("files").filter((file): file is File => file instanceof File && file.size > 0);

@@ -4,14 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createExpenseRecordAction } from "@/lib/actions/finance";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewExpensePage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.manage");
 
   return (
     <AppShell profile={profile}>

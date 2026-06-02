@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { addRecipeItemAction } from "@/lib/actions/products";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listInventoryItems } from "@/lib/data/inventory";
 import { getProduct, listRecipe } from "@/lib/data/products";
 import { formatQty } from "@/lib/utils";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function ProductRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "product.manage");
   const [product, recipe, items] = await Promise.all([getProduct(id), listRecipe(id), listInventoryItems()]);
 
   if (!product) {

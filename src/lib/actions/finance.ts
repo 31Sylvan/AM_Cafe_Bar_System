@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const expenseSchema = z.object({
@@ -20,7 +20,7 @@ const monthCloseSchema = z.object({
 
 export async function createExpenseRecordAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.manage");
   const payload = expenseSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
@@ -50,7 +50,7 @@ export async function createExpenseRecordAction(formData: FormData) {
 
 export async function createMonthCloseSnapshotAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.manage");
   const payload = monthCloseSchema.parse(Object.fromEntries(formData));
   const month = `${payload.month}-01`;
 

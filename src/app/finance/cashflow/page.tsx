@@ -1,6 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { getCashflowForecast, getCashflowSummary } from "@/lib/data/finance";
 import { formatMoney } from "@/lib/utils";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CashflowPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.view");
   const [cashflow, forecast] = await Promise.all([getCashflowSummary(), getCashflowForecast()]);
 
   return (

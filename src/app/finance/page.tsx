@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { getCashflowSummary, listCostSummary, listProfitLoss } from "@/lib/data/finance";
 import { formatMoney } from "@/lib/utils";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FinancePage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.view");
   const [cashflow, costs, profitLoss] = await Promise.all([getCashflowSummary(), listCostSummary(), listProfitLoss()]);
   const latestCost = costs[0];
   const latestProfit = profitLoss[0];

@@ -4,7 +4,7 @@ import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listExpenseRecords } from "@/lib/data/finance";
 import { formatMoney } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ExpensesPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "finance.manage");
   const expenses = await listExpenseRecords();
 
   return (

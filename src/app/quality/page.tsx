@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listNegativeInventoryBalances, listProductsWithoutRecipe } from "@/lib/data/quality";
 import { listInventoryBalances } from "@/lib/data/inventory";
 import { formatQty } from "@/lib/utils";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function QualityPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "quality.view");
   const [withoutRecipe, negativeStock, balances] = await Promise.all([
     listProductsWithoutRecipe(),
     listNegativeInventoryBalances(),

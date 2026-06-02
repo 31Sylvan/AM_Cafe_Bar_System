@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { previewProductCatalogWorkbook } from "@/lib/imports/product-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "import.manage");
 
   const formData = await request.formData();
   const file = formData.get("file");

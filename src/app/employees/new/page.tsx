@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createEmployeeAction } from "@/lib/actions/staff";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewEmployeePage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "employee.manage");
 
   return (
     <AppShell profile={profile}>

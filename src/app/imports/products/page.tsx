@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { ProductCatalogImporter } from "./product-catalog-importer";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductCatalogImportPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "import.manage");
 
   return (
     <AppShell profile={profile}>

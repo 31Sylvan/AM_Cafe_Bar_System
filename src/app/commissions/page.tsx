@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createCommissionRuleAction } from "@/lib/actions/staff";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listCommissionRules } from "@/lib/data/staff";
 import { formatMoney } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CommissionsPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "commission.manage");
   const rules = await listCommissionRules();
 
   return (

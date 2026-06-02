@@ -3,14 +3,14 @@ import { Download, FileJson } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { backupReports } from "@/lib/backup";
 
 export const dynamic = "force-dynamic";
 
 export default async function BackupPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "backup.manage");
 
   return (
     <AppShell profile={profile}>

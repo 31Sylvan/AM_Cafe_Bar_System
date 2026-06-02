@@ -4,14 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createShiftAction } from "@/lib/actions/staff";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listEmployees } from "@/lib/data/staff";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewShiftPage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "shift.manage");
   const employees = await listEmployees();
 
   return (

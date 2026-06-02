@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const employeeSchema = z.object({
@@ -29,7 +29,7 @@ const commissionRuleSchema = z.object({
 
 export async function createEmployeeAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "employee.manage");
   const payload = employeeSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
@@ -52,7 +52,7 @@ export async function createEmployeeAction(formData: FormData) {
 
 export async function createShiftAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "shift.manage");
   const payload = shiftSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
@@ -74,7 +74,7 @@ export async function createShiftAction(formData: FormData) {
 
 export async function createCommissionRuleAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "commission.manage");
   const payload = commissionRuleSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {

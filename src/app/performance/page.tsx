@@ -1,6 +1,6 @@
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { listEmployeePerformance } from "@/lib/data/staff";
 import { formatMoney } from "@/lib/utils";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PerformancePage() {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "performance.view");
   const rows = await listEmployeePerformance();
 
   return (

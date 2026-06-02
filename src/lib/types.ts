@@ -14,11 +14,21 @@ export type InventoryMovementType =
 
 export type Profile = {
   id: string;
+  tenant_id: string;
   store_id: string;
   role: UserRole;
   display_name: string;
   phone: string | null;
   status: RecordStatus;
+  permissions?: string[];
+};
+
+export type Tenant = {
+  id: string;
+  name: string;
+  slug: string;
+  status: RecordStatus;
+  created_at: string;
 };
 
 export type InventoryItem = {
@@ -36,12 +46,36 @@ export type InventoryItem = {
 
 export type Store = {
   id: string;
+  tenant_id: string;
   name: string;
   business_mode: string;
   address: string | null;
   timezone: string;
   status: RecordStatus;
   created_at: string;
+};
+
+export type StoreMembership = {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  profile_id: string;
+  role: UserRole;
+  status: RecordStatus;
+  created_at: string;
+  stores?: Store | null;
+  profiles?: Pick<Profile, "id" | "display_name" | "phone" | "role" | "status"> | null;
+};
+
+export type MemberPermissionOverride = {
+  tenant_id: string;
+  store_id: string;
+  profile_id: string;
+  permission_key: string;
+  effect: "allow" | "deny";
+  updated_at: string;
+  profiles?: Pick<Profile, "id" | "display_name" | "phone" | "role" | "status"> | null;
+  stores?: Pick<Store, "id" | "name"> | null;
 };
 
 export type InventoryBalance = {

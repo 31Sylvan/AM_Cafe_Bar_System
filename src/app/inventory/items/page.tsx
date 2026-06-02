@@ -4,6 +4,7 @@ import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireProfile } from "@/lib/auth";
 import { listInventoryBalances } from "@/lib/data/inventory";
 import { formatMoney, formatQty } from "@/lib/utils";
@@ -37,36 +38,36 @@ export default async function InventoryItemsPage() {
       {items.length === 0 ? (
         <EmptyState title="还没有库存原料" description="老板账号可先录入咖啡豆、牛奶、酒类、耗材等基础原料。" />
       ) : (
-        <div className="overflow-hidden rounded-md border border-stone-200 bg-white">
-          <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="bg-stone-100 text-xs font-medium text-stone-500">
-              <tr>
-                <th className="px-4 py-3">原料</th>
-                <th className="px-4 py-3">分类</th>
-                <th className="px-4 py-3">库存</th>
-                <th className="px-4 py-3">安全线</th>
-                <th className="px-4 py-3">参考成本</th>
-                <th className="px-4 py-3">库存价值</th>
-                <th className="px-4 py-3">状态</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
+        <TableContainer>
+          <Table className="min-w-[860px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>原料</TableHead>
+                <TableHead>分类</TableHead>
+                <TableHead>库存</TableHead>
+                <TableHead>安全线</TableHead>
+                <TableHead>参考成本</TableHead>
+                <TableHead>库存价值</TableHead>
+                <TableHead>状态</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((item) => (
-                <tr key={item.item_id}>
-                  <td className="px-4 py-3 font-medium">{item.name}</td>
-                  <td className="px-4 py-3">{item.category}</td>
-                  <td className="px-4 py-3">{formatQty(item.current_qty, item.unit)}</td>
-                  <td className="px-4 py-3">{formatQty(item.safe_stock, item.unit)}</td>
-                  <td className="px-4 py-3">{formatMoney(item.cost_price)}</td>
-                  <td className="px-4 py-3">{formatMoney(item.inventory_value)}</td>
-                  <td className="px-4 py-3">
-                    {item.is_low_stock ? <Badge className="border-amber-200 bg-amber-50 text-amber-800">预警</Badge> : <Badge>正常</Badge>}
-                  </td>
-                </tr>
+                <TableRow key={item.item_id}>
+                  <TableCell className="font-medium text-stone-950">{item.name}</TableCell>
+                  <TableCell>{item.category}</TableCell>
+                  <TableCell>{formatQty(item.current_qty, item.unit)}</TableCell>
+                  <TableCell>{formatQty(item.safe_stock, item.unit)}</TableCell>
+                  <TableCell>{formatMoney(item.cost_price)}</TableCell>
+                  <TableCell>{formatMoney(item.inventory_value)}</TableCell>
+                  <TableCell>
+                    {item.is_low_stock ? <Badge variant="warning">预警</Badge> : <Badge variant="success">正常</Badge>}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
     </AppShell>
   );

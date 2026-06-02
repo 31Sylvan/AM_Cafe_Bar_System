@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireOwner, requireProfile } from "@/lib/auth";
+import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const productSchema = z.object({
@@ -27,7 +27,7 @@ const productAliasSchema = z.object({
 
 export async function createProductAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "product.manage");
 
   const payload = productSchema.parse(Object.fromEntries(formData));
 
@@ -50,7 +50,7 @@ export async function createProductAction(formData: FormData) {
 
 export async function addRecipeItemAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "product.manage");
 
   const payload = recipeSchema.parse(Object.fromEntries(formData));
 
@@ -74,7 +74,7 @@ export async function addRecipeItemAction(formData: FormData) {
 
 export async function createProductAliasAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "product.manage");
 
   const payload = productAliasSchema.parse(Object.fromEntries(formData));
 
@@ -101,7 +101,7 @@ export async function createProductAliasAction(formData: FormData) {
 
 export async function deleteProductAliasAction(formData: FormData) {
   const profile = await requireProfile();
-  requireOwner(profile);
+  requirePermission(profile, "product.manage");
 
   const aliasId = z.string().uuid().parse(formData.get("alias_id"));
 
