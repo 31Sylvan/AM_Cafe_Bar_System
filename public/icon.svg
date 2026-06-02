@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Coffee Shop OS">
+  <rect width="512" height="512" rx="96" fill="#047857"/>
+  <path fill="#fff7ed" d="M146 183h174v86c0 58-47 105-105 105h-8c-34 0-61-27-61-61V183Z"/>
+  <path fill="none" stroke="#fff7ed" stroke-width="32" stroke-linecap="round" d="M321 216h32c35 0 54 21 54 48s-19 48-54 48h-32"/>
+  <path fill="none" stroke="#064e3b" stroke-width="18" stroke-linecap="round" d="M184 229h94M184 275h76"/>
+  <path fill="none" stroke="#fff7ed" stroke-width="24" stroke-linecap="round" d="M188 138c-14-20 12-31 0-51M251 138c-14-20 12-31 0-51M314 138c-14-20 12-31 0-51"/>
+</svg>
