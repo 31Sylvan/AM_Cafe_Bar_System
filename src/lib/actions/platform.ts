@@ -6,15 +6,17 @@ import { requirePlatformAdmin, requireProfile } from "@/lib/auth";
 import { platformModules } from "@/lib/platform";
 import { createAdminClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 
+const postgresUuid = z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/);
+
 const entitlementSchema = z.object({
-  store_id: z.string().uuid(),
+  store_id: postgresUuid,
   module_key: z.enum(platformModules.map((module) => module.key) as [string, ...string[]]),
   enabled: z.enum(["true", "false"]).transform((value) => value === "true"),
   note: z.string().trim().optional(),
 });
 
 const storeStatusSchema = z.object({
-  store_id: z.string().uuid(),
+  store_id: postgresUuid,
   status: z.enum(["active", "inactive", "disabled"]),
 });
 
