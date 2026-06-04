@@ -30,7 +30,7 @@ export async function getPlatformDashboardData(): Promise<PlatformDashboardData>
     admin.from("tenants").select("*").order("created_at", { ascending: false }),
     admin
       .from("stores")
-      .select("*, tenants(id, name, slug, status), store_memberships(id, role, status, profile_id), store_module_entitlements(*)")
+      .select("*, tenants!stores_tenant_id_fkey(id, name, slug, status), store_memberships(id, role, status, profile_id), store_module_entitlements(*)")
       .order("created_at", { ascending: false }),
     admin.from("store_module_entitlements").select("*").order("updated_at", { ascending: false }),
   ]);
