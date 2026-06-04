@@ -147,6 +147,20 @@ export default async function PlatformPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="mt-5">
+        <CardHeader>
+          <CardTitle>门店详情与模块矩阵</CardTitle>
+          <CardDescription>逐店查看每个模块的开通状态、备注和最近更新时间。默认开通表示尚未写入单独配置。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {data.stores.length === 0 ? (
+            <EmptyState title="暂无门店详情" description="创建门店后，这里会显示逐店模块矩阵。" />
+          ) : (
+            data.stores.map((store) => <StoreModuleMatrix key={store.id} store={store} />)
+          )}
+        </CardContent>
+      </Card>
     </AppShell>
   );
 }
@@ -190,6 +204,86 @@ function StoreRow({ store }: { store: PlatformStoreOverview }) {
         </form>
       </TableCell>
     </TableRow>
+  );
+}
+
+function StoreModuleMatrix({ store }: { store: PlatformStoreOverview }) {
+  const entitlementByModule = new Map((store.store_module_entitlements ?? []).map((item) => [item.module_key, item]));
+  const enabledCount = platformModules.filter((module) => entitlementByModule.get(module.key)?.enabled ?? true).length;
+  const disabledCount = platformModules.length - enabledCount;
+
+  return (
+    <section className="overflow-hidden rounded-md border border-[var(--line)] bg-white/70">
+      <div className="flex flex-col gap-3 border-b border-[var(--line)] bg-stone-50 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-stone-950">{store.name}</h3>
+            <Badge variant={store.status === "active" ? "success" : store.status === "disabled" ? "danger" : "warning"}>
+              {statusLabels[store.status]}
+            </Badge>
+          </div>
+          <div className="mt-1 text-sm text-stone-500">
+            {store.tenants?.name ?? store.tenant_id} · {store.address || "未填写地址"}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Badge variant="success">开通 {enabledCount}</Badge>
+          <Badge variant={disabledCount > 0 ? "warning" : "muted"}>关闭 {disabledCount}</Badge>
+        </div>
+      </div>
+
+      <TableContainer className="rounded-none border-0 shadow-none">
+        <Table className="min-w-[960px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>模块</TableHead>
+              <TableHead>当前状态</TableHead>
+              <TableHead>备注</TableHead>
+              <TableHead>更新时间</TableHead>
+              <TableHead className="text-right">调整</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {platformModules.map((module) => {
+              const entitlement = entitlementByModule.get(module.key);
+              const enabled = entitlement?.enabled ?? true;
+              return (
+                <TableRow key={`${store.id}:${module.key}`}>
+                  <TableCell>
+                    <div className="font-medium text-stone-950">{module.name}</div>
+                    <div className="mt-1 font-mono text-xs text-stone-400">{module.key}</div>
+                    <p className="mt-1 max-w-md text-xs leading-5 text-stone-500">{module.description}</p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={enabled ? "success" : "danger"}>
+                      {entitlement ? (enabled ? "开通" : "关闭") : "默认开通"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[260px] text-sm text-stone-600">
+                    {entitlement?.note || "-"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-sm text-stone-500">
+                    {entitlement?.updated_at ? new Date(entitlement.updated_at).toLocaleString("zh-CN") : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <form action={updateStoreModuleEntitlementAction} className="flex justify-end gap-2">
+                      <input type="hidden" name="store_id" value={store.id} />
+                      <input type="hidden" name="module_key" value={module.key} />
+                      <Select name="enabled" defaultValue={String(enabled)} className="w-28">
+                        <option value="true">开通</option>
+                        <option value="false">关闭</option>
+                      </Select>
+                      <Input name="note" defaultValue={entitlement?.note ?? ""} placeholder="备注" className="w-44" />
+                      <Button size="sm" variant="secondary">保存</Button>
+                    </form>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </section>
   );
 }
 
