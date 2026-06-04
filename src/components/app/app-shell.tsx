@@ -10,6 +10,7 @@ import {
   Menu,
   Package,
   PackagePlus,
+  PanelTop,
   Upload,
   ReceiptText,
   ShoppingCart,
@@ -20,38 +21,37 @@ import {
   WalletCards,
 } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
-import { hasPermission, type PermissionKey } from "@/lib/permissions";
+import { getInterfaceSettings } from "@/lib/data/interface-settings";
+import { navigationDefinitions } from "@/lib/interface-config";
+import { hasPermission } from "@/lib/permissions";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { href: "/platform", label: "平台后台", icon: Building2, permission: "platform.manage" },
-  { href: "/dashboard", label: "仪表盘", icon: LayoutDashboard, permission: "dashboard.view" },
-  { href: "/inventory/items", label: "库存中心", icon: Package, permission: "inventory.view" },
-  { href: "/purchases", label: "采购管理", icon: ShoppingCart, permission: "purchase.view" },
-  { href: "/products", label: "产品配方", icon: Store, permission: "product.view" },
-  { href: "/sales", label: "销售录入", icon: ReceiptText, permission: "sales.view" },
-  { href: "/waste", label: "损耗管理", icon: PackagePlus, permission: "waste.view" },
-  { href: "/stock-counts", label: "盘点管理", icon: ClipboardList, permission: "stock_count.view" },
-  { href: "/finance", label: "财务中心", icon: WalletCards, permission: "finance.view" },
-  { href: "/employees", label: "员工管理", icon: Users, permission: "employee.view" },
-  { href: "/shifts", label: "排班管理", icon: ClipboardList, permission: "shift.view" },
-  { href: "/performance", label: "员工绩效", icon: BarChart3, permission: "performance.view" },
-  { href: "/commissions", label: "提成系统", icon: WalletCards, permission: "commission.manage" },
-  { href: "/quality", label: "数据质量", icon: TriangleAlert, permission: "quality.view" },
-  { href: "/imports", label: "导入预检", icon: Upload, permission: "import.manage" },
-  { href: "/backup", label: "数据备份", icon: Archive, permission: "backup.manage" },
-  { href: "/inventory/movements", label: "库存流水", icon: ClipboardList, permission: "inventory.view" },
-  { href: "/inventory/alerts", label: "库存预警", icon: AlertTriangle, permission: "inventory.view" },
-  { href: "/reports", label: "报表中心", icon: BarChart3, permission: "report.view" },
-  { href: "/settings/ui", label: "UI样式", icon: Palette, permission: "theme.manage" },
-  { href: "/settings/permissions", label: "权限系统", icon: Users, permission: "permission.manage" },
-  { href: "/settings", label: "系统设置", icon: Store, permission: "settings.manage" },
-] satisfies Array<{ href: string; label: string; icon: typeof LayoutDashboard; permission: PermissionKey }>;
+const iconRegistry = {
+  AlertTriangle,
+  Archive,
+  BarChart3,
+  Building2,
+  ClipboardList,
+  LayoutDashboard,
+  Package,
+  PackagePlus,
+  PanelTop,
+  Palette,
+  ReceiptText,
+  ShoppingCart,
+  Store,
+  TriangleAlert,
+  Upload,
+  Users,
+  WalletCards,
+};
 
-export function AppShell({ children, profile }: { children: React.ReactNode; profile: Profile | null }) {
-  const visibleNavItems = navItems.filter((item) => !profile || hasPermission(profile, item.permission));
+export async function AppShell({ children, profile }: { children: React.ReactNode; profile: Profile | null }) {
+  const interfaceSettings = await getInterfaceSettings(profile?.store_id);
+  const visibleNavItems = interfaceSettings.navigation.filter((item) => !item.hidden && (!profile || hasPermission(profile, item.permission)));
+  const content = interfaceSettings.content;
   const demoMode = !hasSupabaseEnv();
 
   return (
@@ -62,19 +62,19 @@ export function AppShell({ children, profile }: { children: React.ReactNode; pro
             AM
           </div>
           <div className="ml-3 min-w-0">
-            <div className="truncate text-base font-semibold tracking-normal">Coffee Shop OS</div>
-            <div className="mt-0.5 text-xs text-stone-300">Aroma Melody Cafe & Bar</div>
+            <div className="truncate text-base font-semibold tracking-normal">{content.app_title}</div>
+            <div className="mt-0.5 text-xs text-stone-300">{content.app_subtitle}</div>
           </div>
         </div>
         <div className="border-b border-white/10 px-5 py-4">
           <div className="rounded-md bg-white/8 px-3 py-3">
             <div className="text-xs text-stone-300">今日工作台</div>
-            <div className="mt-1 text-sm font-medium text-white">库存、订单、现金流联动</div>
+            <div className="mt-1 text-sm font-medium text-white">{content.workbench_title}</div>
           </div>
         </div>
         <nav className="h-[calc(100vh-160px)] space-y-1 overflow-y-auto px-3 py-4">
           {visibleNavItems.map((item) => {
-            const Icon = item.icon;
+            const Icon = iconRegistry[item.icon as keyof typeof iconRegistry] ?? LayoutDashboard;
             return (
               <Link
                 key={item.href}
@@ -136,7 +136,7 @@ export function AppShell({ children, profile }: { children: React.ReactNode; pro
 
         <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--card)_95%,transparent)] shadow-[0_-8px_24px_rgba(45,28,18,0.08)] backdrop-blur lg:hidden">
           {visibleNavItems.slice(0, 4).map((item) => {
-            const Icon = item.icon;
+            const Icon = iconRegistry[item.icon as keyof typeof iconRegistry] ?? LayoutDashboard;
             return (
               <Link key={item.href} href={item.href} className="flex h-14 flex-col items-center justify-center gap-1 text-xs font-medium text-stone-600">
                 <Icon className="h-4 w-4" />
@@ -149,6 +149,8 @@ export function AppShell({ children, profile }: { children: React.ReactNode; pro
     </div>
   );
 }
+
+export const defaultNavItems = navigationDefinitions;
 
 export function PageHeader({
   title,

@@ -167,6 +167,17 @@ export default async function SettingsPage() {
           </div>
         </section>
         <section className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2">
+          <h2 className="font-semibold">界面内容中心</h2>
+          <p className="mt-2 text-sm leading-6 text-stone-500">
+            编辑后台菜单名称、拖动菜单顺序、隐藏不需要的入口，并调整老板驾驶舱的指标卡和排行榜展示。
+          </p>
+          <div className="mt-4">
+            <Button asChild>
+              <Link href="/settings/interface">进入界面内容中心</Link>
+            </Button>
+          </div>
+        </section>
+        <section className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2">
           <h2 className="font-semibold">界面样式</h2>
           <p className="mt-2 text-sm leading-6 text-stone-500">
             管理主题色、按钮、图标线宽、卡片和表格样式。适合在正式部署前统一系统视觉。
