@@ -1,6 +1,6 @@
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { demoCommissionRules, demoEmployeePerformance, demoEmployees, demoShifts } from "@/lib/demo-data";
-import type { CommissionRule, Employee, EmployeePerformance, Shift } from "@/lib/types";
+import type { CommissionRule, Employee, EmployeeAccountInvite, EmployeePerformance, Shift } from "@/lib/types";
 
 export async function listEmployees() {
   if (!hasSupabaseEnv()) return demoEmployees;
@@ -10,6 +10,19 @@ export async function listEmployees() {
 
   if (error) throw new Error(error.message);
   return (data ?? []) as Employee[];
+}
+
+export async function listEmployeeAccountInvites() {
+  if (!hasSupabaseEnv()) return [] satisfies EmployeeAccountInvite[];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("employee_account_invites")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as EmployeeAccountInvite[];
 }
 
 export async function listShifts() {

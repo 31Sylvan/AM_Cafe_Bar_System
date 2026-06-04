@@ -21,6 +21,7 @@ export type Profile = {
   phone: string | null;
   status: RecordStatus;
   permissions?: string[];
+  is_platform_admin?: boolean;
 };
 
 export type Tenant = {
@@ -29,6 +30,21 @@ export type Tenant = {
   slug: string;
   status: RecordStatus;
   created_at: string;
+};
+
+export type StoreModuleEntitlement = {
+  store_id: string;
+  module_key: string;
+  enabled: boolean;
+  note: string | null;
+  updated_by: string | null;
+  updated_at: string;
+};
+
+export type PlatformStoreOverview = Store & {
+  tenants?: Pick<Tenant, "id" | "name" | "slug" | "status"> | null;
+  store_memberships?: Array<Pick<StoreMembership, "id" | "role" | "status" | "profile_id">>;
+  store_module_entitlements?: StoreModuleEntitlement[];
 };
 
 export type InventoryItem = {
@@ -52,6 +68,7 @@ export type Store = {
   address: string | null;
   timezone: string;
   status: RecordStatus;
+  ui_theme?: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -76,6 +93,22 @@ export type MemberPermissionOverride = {
   updated_at: string;
   profiles?: Pick<Profile, "id" | "display_name" | "phone" | "role" | "status"> | null;
   stores?: Pick<Store, "id" | "name"> | null;
+};
+
+export type ImportBatch = {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  import_type: "products" | "inventory" | "purchases" | "recipes" | "orders";
+  source_file: string;
+  status: "completed" | "failed";
+  total_rows: number;
+  imported_rows: number;
+  skipped_rows: number;
+  warning_count: number;
+  error_message: string | null;
+  created_by: string;
+  created_at: string;
 };
 
 export type InventoryBalance = {
@@ -340,6 +373,21 @@ export type Employee = {
   hire_date: string;
   status: "active" | "inactive";
   created_at: string;
+};
+
+export type EmployeeAccountInvite = {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  employee_id: string;
+  email: string;
+  role: UserRole;
+  status: "pending" | "created" | "expired" | "canceled";
+  auth_user_id: string | null;
+  invited_by: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Shift = {

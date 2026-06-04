@@ -67,6 +67,8 @@ function stripUnit(value: string) {
 export function ThemeStudio() {
   const [theme, setTheme] = useState<UiThemeConfig>(() => readStoredUiTheme());
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     applyUiTheme(theme);
@@ -89,16 +91,54 @@ export function ThemeStudio() {
     });
   }
 
-  function save() {
-    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
-    applyUiTheme(theme);
-    setSaved(true);
+  async function save() {
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const response = await fetch("/api/settings/ui-theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(theme),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? "保存样式失败");
+      }
+      localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
+      applyUiTheme(theme);
+      setSaved(true);
+      setSaveMessage(payload.mode === "supabase" ? "已保存到当前门店云端配置。" : "已保存到本地 Demo 配置。");
+    } catch (error) {
+      localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
+      applyUiTheme(theme);
+      setSaved(true);
+      setSaveMessage(error instanceof Error ? `云端保存失败，已暂存本机：${error.message}` : "云端保存失败，已暂存本机。");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function reset() {
-    localStorage.removeItem(THEME_STORAGE_KEY);
-    update(defaultUiTheme);
-    setSaved(false);
+  async function reset() {
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const response = await fetch("/api/settings/ui-theme", { method: "DELETE" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? "恢复默认样式失败");
+      }
+      localStorage.removeItem(THEME_STORAGE_KEY);
+      update(defaultUiTheme);
+      setSaved(true);
+      setSaveMessage(payload.mode === "supabase" ? "已恢复当前门店云端默认样式。" : "已恢复本地 Demo 默认样式。");
+    } catch (error) {
+      localStorage.removeItem(THEME_STORAGE_KEY);
+      update(defaultUiTheme);
+      setSaved(true);
+      setSaveMessage(error instanceof Error ? `云端恢复失败，已恢复本机默认：${error.message}` : "云端恢复失败，已恢复本机默认。");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -165,16 +205,16 @@ export function ThemeStudio() {
             ))}
 
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button type="button" onClick={save}>
+              <Button type="button" onClick={save} disabled={saving}>
                 <Save className="h-4 w-4" />
-                保存样式
+                {saving ? "保存中" : "保存样式"}
               </Button>
-              <Button type="button" variant="secondary" onClick={reset}>
+              <Button type="button" variant="secondary" onClick={reset} disabled={saving}>
                 <RotateCcw className="h-4 w-4" />
                 恢复默认
               </Button>
             </div>
-            {saved ? <div className="text-sm text-emerald-700">已保存到当前浏览器，下次打开仍会生效。</div> : null}
+            {saved ? <div className="text-sm text-emerald-700">{saveMessage || "已保存。"}</div> : null}
           </CardContent>
         </Card>
       </div>
@@ -257,7 +297,7 @@ export function ThemeStudio() {
               <TableRow>
                 <TableCell className="font-medium">Theme Tokens</TableCell>
                 <TableCell>颜色、圆角、控件高度、图标线宽</TableCell>
-                <TableCell><Badge variant="warning">本地保存</Badge></TableCell>
+                <TableCell><Badge variant="success">云端保存</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>

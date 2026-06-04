@@ -14,6 +14,17 @@ export default async function ImportsPage() {
   return (
     <AppShell profile={profile}>
       <PageHeader title="导入预检" description="上传 CSV 后只做格式、必填项、枚举值和重复项检查，不会写入数据库。" />
+      <section className="mb-5 rounded-md border border-violet-200 bg-violet-50 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-violet-950">V3 导入批次历史</h2>
+            <p className="mt-1 text-sm text-violet-900">查看每次商品、库存、采购、配方和订单导入的来源文件、入库数量、跳过数量与预警数量。</p>
+          </div>
+          <Button asChild variant="secondary">
+            <Link href="/imports/history">查看导入历史</Link>
+          </Button>
+        </div>
+      </section>
       <section className="mb-5 rounded-md border border-sky-200 bg-sky-50 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

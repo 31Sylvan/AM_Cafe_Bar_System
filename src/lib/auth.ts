@@ -32,9 +32,13 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   if (!error && data) {
     const permissions = await getCurrentPermissionKeys(supabase);
+    const platformAdmin = await getIsPlatformAdmin(supabase);
     return {
       ...data,
-      permissions: permissions.length ? permissions : getDefaultPermissions(data.role),
+      permissions: platformAdmin
+        ? Array.from(new Set([...(permissions.length ? permissions : getDefaultPermissions(data.role)), "platform.manage"]))
+        : permissions.length ? permissions : getDefaultPermissions(data.role),
+      is_platform_admin: platformAdmin,
     } as Profile;
   }
 
@@ -78,6 +82,12 @@ export function requirePermission(profile: Profile, permission: PermissionKey) {
   }
 }
 
+export function requirePlatformAdmin(profile: Profile) {
+  if (!profile.is_platform_admin && !profile.permissions?.includes("platform.manage")) {
+    redirect("/dashboard");
+  }
+}
+
 async function getCurrentPermissionKeys(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data, error } = await supabase.rpc("current_permission_keys");
 
@@ -88,4 +98,10 @@ async function getCurrentPermissionKeys(supabase: Awaited<ReturnType<typeof crea
   return data
     .map((row: { permission_key?: string }) => row.permission_key)
     .filter(Boolean) as PermissionKey[];
+}
+
+async function getIsPlatformAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data, error } = await supabase.rpc("is_platform_admin");
+  if (error) return false;
+  return Boolean(data);
 }

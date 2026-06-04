@@ -1,6 +1,7 @@
 import type { Profile, UserRole } from "@/lib/types";
 
 export const permissionModules = [
+  "平台",
   "驾驶舱",
   "库存",
   "采购",
@@ -24,6 +25,7 @@ export const permissionModules = [
 export type PermissionModule = (typeof permissionModules)[number];
 
 export const permissionCatalog = [
+  { key: "platform.manage", name: "平台管理后台", module: "平台", description: "系统拥有者跨租户管理租户、门店和模块开通" },
   { key: "dashboard.view", name: "查看仪表盘", module: "驾驶舱", description: "查看经营首页和基础指标" },
   { key: "inventory.view", name: "查看库存", module: "库存", description: "查看库存余额、库存预警和库存流水" },
   { key: "inventory.manage", name: "管理库存", module: "库存", description: "新增和维护库存原料资料" },

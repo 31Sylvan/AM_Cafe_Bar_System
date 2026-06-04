@@ -56,7 +56,25 @@ export function readStoredUiTheme() {
 
 export function ThemeStyleProvider() {
   useEffect(() => {
-    applyUiTheme(readStoredUiTheme());
+    const storedTheme = readStoredUiTheme();
+    applyUiTheme(storedTheme);
+
+    let active = true;
+    fetch("/api/settings/ui-theme", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { theme?: Partial<UiThemeConfig> | null } | null) => {
+        if (!active || !payload?.theme) return;
+        const cloudTheme = { ...defaultUiTheme, ...payload.theme };
+        localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(cloudTheme));
+        applyUiTheme(cloudTheme);
+      })
+      .catch(() => {
+        applyUiTheme(storedTheme);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return null;

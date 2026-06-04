@@ -3,8 +3,12 @@ import { Plus } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { createEmployeeAccountAction, resetEmployeePasswordAction } from "@/lib/actions/staff";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { listEmployees } from "@/lib/data/staff";
+import { listEmployeeAccountInvites, listEmployees } from "@/lib/data/staff";
+import { hasPermission } from "@/lib/permissions";
 import { formatMoney } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +16,12 @@ export const dynamic = "force-dynamic";
 export default async function EmployeesPage() {
   const profile = await requireProfile();
   requirePermission(profile, "employee.view");
-  const employees = await listEmployees();
+  const canManageEmployees = hasPermission(profile, "employee.manage");
+  const [employees, accountInvites] = await Promise.all([
+    listEmployees(),
+    canManageEmployees ? listEmployeeAccountInvites() : Promise.resolve([]),
+  ]);
+  const inviteByEmployeeId = new Map(accountInvites.map((invite) => [invite.employee_id, invite]));
 
   return (
     <AppShell profile={profile}>
@@ -20,25 +29,63 @@ export default async function EmployeesPage() {
       {employees.length === 0 ? (
         <EmptyState title="暂无员工" description="添加员工后即可创建排班、统计绩效和计算提成。" />
       ) : (
-        <div className="overflow-hidden rounded-md border border-stone-200 bg-white">
-          <table className="w-full min-w-[820px] text-left text-sm">
-            <thead className="bg-stone-100 text-xs font-medium text-stone-500">
-              <tr><th className="px-4 py-3">姓名</th><th className="px-4 py-3">电话</th><th className="px-4 py-3">职位</th><th className="px-4 py-3">时薪</th><th className="px-4 py-3">入职日期</th><th className="px-4 py-3">状态</th></tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
+        <TableContainer>
+          <Table className="min-w-[940px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>电话</TableHead>
+                <TableHead>职位</TableHead>
+                <TableHead>时薪</TableHead>
+                <TableHead>入职日期</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>登录账号</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {employees.map((employee) => (
-                <tr key={employee.id}>
-                  <td className="px-4 py-3 font-medium">{employee.name}</td>
-                  <td className="px-4 py-3">{employee.phone ?? "-"}</td>
-                  <td className="px-4 py-3">{employee.position}</td>
-                  <td className="px-4 py-3">{formatMoney(employee.hourly_rate)}</td>
-                  <td className="px-4 py-3">{employee.hire_date}</td>
-                  <td className="px-4 py-3"><Badge>{employee.status === "active" ? "在职" : "离职"}</Badge></td>
-                </tr>
+                <TableRow key={employee.id}>
+                  <TableCell className="font-medium">{employee.name}</TableCell>
+                  <TableCell>{employee.phone ?? "-"}</TableCell>
+                  <TableCell>{employee.position}</TableCell>
+                  <TableCell>{formatMoney(employee.hourly_rate)}</TableCell>
+                  <TableCell>{employee.hire_date}</TableCell>
+                  <TableCell><Badge>{employee.status === "active" ? "在职" : "离职"}</Badge></TableCell>
+                  <TableCell>
+                    {employee.profile_id ? (
+                      <div className="grid min-w-[280px] gap-2">
+                        <Badge variant="success">已绑定</Badge>
+                        {canManageEmployees ? (
+                          <form action={resetEmployeePasswordAction} className="flex gap-2">
+                            <input type="hidden" name="employee_id" value={employee.id} />
+                            <Input name="password" type="text" placeholder="新密码，至少 8 位" minLength={8} required />
+                            <Button size="sm" variant="secondary">重置</Button>
+                          </form>
+                        ) : null}
+                      </div>
+                    ) : inviteByEmployeeId.has(employee.id) ? (
+                      <div className="space-y-1">
+                        <Badge variant="warning">待开通</Badge>
+                        <div className="text-xs text-stone-500">{inviteByEmployeeId.get(employee.id)?.email}</div>
+                      </div>
+                    ) : canManageEmployees ? (
+                      <form action={createEmployeeAccountAction} className="grid min-w-[360px] gap-2">
+                        <input type="hidden" name="employee_id" value={employee.id} />
+                        <Input name="email" type="email" placeholder="员工登录邮箱" required />
+                        <div className="flex gap-2">
+                          <Input name="password" type="text" placeholder="临时密码，至少 8 位" minLength={8} required />
+                          <Button size="sm">创建账号</Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <span className="text-sm text-stone-500">未绑定</span>
+                    )}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
     </AppShell>
   );

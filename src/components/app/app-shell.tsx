@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Archive,
   BarChart3,
+  Building2,
   ClipboardList,
   LayoutDashboard,
   LogOut,
@@ -25,6 +26,7 @@ import type { Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
+  { href: "/platform", label: "平台后台", icon: Building2, permission: "platform.manage" },
   { href: "/dashboard", label: "仪表盘", icon: LayoutDashboard, permission: "dashboard.view" },
   { href: "/inventory/items", label: "库存中心", icon: Package, permission: "inventory.view" },
   { href: "/purchases", label: "采购管理", icon: ShoppingCart, permission: "purchase.view" },

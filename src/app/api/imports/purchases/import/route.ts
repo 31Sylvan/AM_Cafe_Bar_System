@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
+import { recordFailedImportBatch, recordImportBatch } from "@/lib/data/import-batches";
 import { previewPurchaseWorkbook, type NormalizedPurchaseImportLine } from "@/lib/imports/business-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -62,6 +63,15 @@ export async function POST(request: Request) {
     .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
 
   if (missingItems.length > 0) {
+    await recordFailedImportBatch(profile, {
+      import_type: "purchases",
+      source_file: file.name,
+      total_rows: preview.totalRows,
+      skipped_rows: preview.skippedCount,
+      warning_count: preview.warnings.length + missingItems.length,
+      error_message: `采购导入已停止：缺少库存档案 ${missingItems.join("、")}`,
+    });
+
     return NextResponse.json(
       {
         error: "采购导入已停止：以下原料还没有库存档案。",
@@ -116,6 +126,16 @@ export async function POST(request: Request) {
   revalidatePath("/inventory/items");
   revalidatePath("/inventory/movements");
   revalidatePath("/finance/cashflow");
+
+  await recordImportBatch(profile, {
+    import_type: "purchases",
+    source_file: file.name,
+    status: "completed",
+    total_rows: preview.totalRows,
+    imported_rows: preview.importableCount,
+    skipped_rows: preview.skippedCount,
+    warning_count: preview.warnings.length,
+  });
 
   return NextResponse.json({
     mode: "supabase",

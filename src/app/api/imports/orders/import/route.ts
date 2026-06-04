@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
+import { recordFailedImportBatch, recordImportBatch } from "@/lib/data/import-batches";
 import { demoProducts, demoRecipes } from "@/lib/demo-data";
 import { previewOrderWorkbooks, type NormalizedOrderLine } from "@/lib/imports/order-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
@@ -153,6 +154,15 @@ export async function POST(request: Request) {
     .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
 
   if (missingProducts.length > 0) {
+    await recordFailedImportBatch(profile, {
+      import_type: "orders",
+      source_file: files.map((file) => file.name).join(", "),
+      total_rows: preview.lineCount,
+      skipped_rows: preview.skippedCount,
+      warning_count: preview.warnings.length + missingProducts.length,
+      error_message: `订单导入已停止：商品未匹配 ${missingProducts.join("、")}`,
+    });
+
     return NextResponse.json(
       {
         error: "有订单商品尚未匹配到系统产品，已停止导入。",
@@ -198,6 +208,15 @@ export async function POST(request: Request) {
     .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
 
   if (missingRecipes.length > 0) {
+    await recordFailedImportBatch(profile, {
+      import_type: "orders",
+      source_file: files.map((file) => file.name).join(", "),
+      total_rows: preview.lineCount,
+      skipped_rows: preview.skippedCount,
+      warning_count: preview.warnings.length + missingRecipes.length,
+      error_message: `订单导入已停止：产品缺少配方 ${missingRecipes.join("、")}`,
+    });
+
     return NextResponse.json(
       {
         error: "有订单商品尚未维护配方，已停止导入。请先补齐配方，确保销售导入后库存能同步扣减。",
@@ -257,6 +276,16 @@ export async function POST(request: Request) {
     if (error) throw new Error(error.message);
     if (data?.id) importedOrderIds.push(data.id);
   }
+
+  await recordImportBatch(profile, {
+    import_type: "orders",
+    source_file: files.map((file) => file.name).join(", "),
+    status: "completed",
+    total_rows: preview.lineCount,
+    imported_rows: importedOrderIds.length,
+    skipped_rows: preview.skippedCount + duplicateOrderNos.size,
+    warning_count: preview.warnings.length,
+  });
 
   return NextResponse.json({
     mode: "supabase",

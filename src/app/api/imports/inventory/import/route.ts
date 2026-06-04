@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
+import { recordImportBatch } from "@/lib/data/import-batches";
 import { previewInventoryWorkbook } from "@/lib/imports/business-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -120,6 +121,16 @@ export async function POST(request: Request) {
   revalidatePath("/inventory/items");
   revalidatePath("/inventory/movements");
   revalidatePath("/stock-counts");
+
+  await recordImportBatch(profile, {
+    import_type: "inventory",
+    source_file: file.name,
+    status: "completed",
+    total_rows: preview.totalRows,
+    imported_rows: preview.importableCount,
+    skipped_rows: preview.skippedCount,
+    warning_count: preview.warnings.length,
+  });
 
   return NextResponse.json({
     mode: "supabase",

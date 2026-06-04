@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
+import { recordFailedImportBatch, recordImportBatch } from "@/lib/data/import-batches";
 import { previewRecipeWorkbook } from "@/lib/imports/business-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -66,6 +67,19 @@ export async function POST(request: Request) {
     .filter((item): item is string => Boolean(item));
 
   if (missingProducts.length > 0 || missingItems.length > 0 || unitMismatches.length > 0) {
+    await recordFailedImportBatch(profile, {
+      import_type: "recipes",
+      source_file: file.name,
+      total_rows: preview.totalRows,
+      skipped_rows: preview.skippedCount,
+      warning_count: preview.warnings.length + missingProducts.length + missingItems.length + unitMismatches.length,
+      error_message: [
+        missingProducts.length > 0 ? `缺少产品：${missingProducts.join("、")}` : "",
+        missingItems.length > 0 ? `缺少原料：${missingItems.join("、")}` : "",
+        unitMismatches.length > 0 ? `单位不一致：${unitMismatches.join("；")}` : "",
+      ].filter(Boolean).join("；"),
+    });
+
     return NextResponse.json(
       {
         error: "配方导入已停止：请先修正产品、原料或单位匹配问题。",
@@ -128,6 +142,17 @@ export async function POST(request: Request) {
   revalidatePath("/quality");
   revalidatePath("/imports/orders");
 
+  const warnings = [...preview.warnings, ...Array.from(new Set(duplicateWarnings)).slice(0, 20)];
+  await recordImportBatch(profile, {
+    import_type: "recipes",
+    source_file: file.name,
+    status: "completed",
+    total_rows: preview.totalRows,
+    imported_rows: recipeRows.length,
+    skipped_rows: preview.skippedCount,
+    warning_count: warnings.length,
+  });
+
   return NextResponse.json({
     mode: "supabase",
     importableCount: preview.importableCount,
@@ -135,6 +160,6 @@ export async function POST(request: Request) {
     replacedProductCount: productIds.length,
     recipeLineCount: recipeRows.length,
     simulatedCount: 0,
-    warnings: [...preview.warnings, ...Array.from(new Set(duplicateWarnings)).slice(0, 20)],
+    warnings,
   });
 }
