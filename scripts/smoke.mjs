@@ -127,6 +127,18 @@ const checks = [
     expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
   },
   {
+    name: "sales detail protected route",
+    url: "/sales/00000000-0000-0000-0000-000000000000",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
+  {
+    name: "purchase detail protected route",
+    url: "/purchases/00000000-0000-0000-0000-000000000000",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
+  {
     name: "platform protected route",
     url: "/platform",
     options: {},

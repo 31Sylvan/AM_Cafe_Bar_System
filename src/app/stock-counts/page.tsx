@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, RotateCcw } from "lucide-react";
 import { FilterBar } from "@/components/app/filter-bar";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { reverseStockCountAction } from "@/lib/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,13 +92,13 @@ export default async function StockCountsPage({
                   <td className="px-4 py-3 text-stone-500">{new Date(count.created_at).toLocaleString("zh-CN")}</td>
                   <td className="px-4 py-3 text-right">
                     {profile.role === "owner" && count.status === "completed" && !count.voided ? (
-                      <form action={reverseStockCountAction}>
+                      <ReactiveForm action={reverseStockCountAction} successText="盘点已冲正">
                         <input type="hidden" name="stock_count_id" value={count.id} />
                         <Button size="sm" variant="secondary">
                           <RotateCcw className="h-3.5 w-3.5" />
                           冲正
                         </Button>
-                      </form>
+                      </ReactiveForm>
                     ) : (
                       <span className="text-xs text-stone-400">-</span>
                     )}

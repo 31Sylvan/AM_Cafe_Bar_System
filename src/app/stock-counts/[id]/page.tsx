@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RotateCcw } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { reverseStockCountAction } from "@/lib/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,13 +33,13 @@ export default async function StockCountDetailPage({ params }: { params: Promise
         action={
           <div className="flex flex-wrap gap-2">
             {profile.role === "owner" && count.status === "completed" && !count.voided ? (
-              <form action={reverseStockCountAction}>
+              <ReactiveForm action={reverseStockCountAction} successText="盘点已冲正">
                 <input type="hidden" name="stock_count_id" value={count.id} />
                 <Button variant="secondary">
                   <RotateCcw className="h-4 w-4" />
                   冲正盘点
                 </Button>
-              </form>
+              </ReactiveForm>
             ) : null}
             <Button asChild variant="secondary">
               <Link href="/stock-counts">返回盘点列表</Link>

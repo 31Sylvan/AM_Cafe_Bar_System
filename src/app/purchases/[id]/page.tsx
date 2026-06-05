@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RotateCcw } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { voidPurchaseOrderAction } from "@/lib/actions/purchases";
 import { requireProfile } from "@/lib/auth";
 import { getPurchaseOrder } from "@/lib/data/purchases";
 import { formatMoney, formatQty } from "@/lib/utils";
@@ -22,9 +25,20 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
         title="采购单详情"
         description={`${order.supplier} / ${order.purchase_date}`}
         action={
-          <Button asChild variant="secondary">
-            <Link href="/purchases">返回采购列表</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {profile.role === "owner" && order.status === "completed" ? (
+              <ReactiveForm action={voidPurchaseOrderAction} successText="采购单已作废">
+                <input type="hidden" name="purchase_order_id" value={order.id} />
+                <Button variant="secondary">
+                  <RotateCcw className="h-4 w-4" />
+                  作废采购
+                </Button>
+              </ReactiveForm>
+            ) : null}
+            <Button asChild variant="secondary">
+              <Link href="/purchases">返回采购列表</Link>
+            </Button>
+          </div>
         }
       />
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RotateCcw, Plus } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { reverseWasteRecordAction } from "@/lib/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,13 +72,13 @@ export default async function WastePage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {profile.role === "owner" && !record.voided ? (
-                      <form action={reverseWasteRecordAction}>
+                      <ReactiveForm action={reverseWasteRecordAction} successText="损耗已冲正">
                         <input type="hidden" name="waste_record_id" value={record.id} />
                         <Button size="sm" variant="secondary">
                           <RotateCcw className="h-3.5 w-3.5" />
                           冲正
                         </Button>
-                      </form>
+                      </ReactiveForm>
                     ) : (
                       <span className="text-xs text-stone-400">-</span>
                     )}

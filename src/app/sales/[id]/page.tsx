@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RotateCcw } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { voidSaleOrderAction } from "@/lib/actions/operations";
 import { requireProfile } from "@/lib/auth";
 import { getSalesOrder } from "@/lib/data/operations";
 import { formatMoney, formatQty } from "@/lib/utils";
@@ -24,9 +27,20 @@ export default async function SalesDetailPage({ params }: { params: Promise<{ id
         title="销售单详情"
         description={`${order.sale_date} / ${order.channel} / ${order.payment_method}`}
         action={
-          <Button asChild variant="secondary">
-            <Link href="/sales">返回销售列表</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {profile.role === "owner" && order.status !== "void" ? (
+              <ReactiveForm action={voidSaleOrderAction} successText="销售单已作废">
+                <input type="hidden" name="sales_order_id" value={order.id} />
+                <Button variant="secondary">
+                  <RotateCcw className="h-4 w-4" />
+                  作废销售
+                </Button>
+              </ReactiveForm>
+            ) : null}
+            <Button asChild variant="secondary">
+              <Link href="/sales">返回销售列表</Link>
+            </Button>
+          </div>
         }
       />
 
