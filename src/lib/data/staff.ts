@@ -1,24 +1,69 @@
-import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
+import { createAdminClient, createClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 import { demoCommissionRules, demoEmployeePerformance, demoEmployees, demoShifts } from "@/lib/demo-data";
-import type { CommissionRule, Employee, EmployeeAccountInvite, EmployeePerformance, Shift } from "@/lib/types";
+import type { CommissionRule, Employee, EmployeeAccountInvite, EmployeePerformance, Shift, Store } from "@/lib/types";
 
-export async function listEmployees() {
+export type EmployeeWithStore = Employee & {
+  stores?: Pick<Store, "id" | "name" | "status"> | null;
+};
+
+export async function listEmployees(options: { scope?: "current" | "tenant" } = {}) {
   if (!hasSupabaseEnv()) return demoEmployees;
 
+  const profile = await requireProfile();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("employees").select("*").order("status").order("name");
+  const scope = options.scope ?? "current";
+
+  if (scope === "tenant" && profile.role === "owner" && hasSupabaseAdminEnv()) {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("employees")
+      .select("*, stores!inner(id, name, status, tenant_id)")
+      .eq("stores.tenant_id", profile.tenant_id)
+      .eq("stores.status", "active")
+      .order("store_id")
+      .order("status")
+      .order("name");
+
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as EmployeeWithStore[]).filter((employee) => employee.stores?.status === "active");
+  }
+
+  const { data, error } = await supabase
+    .from("employees")
+    .select("*, stores(id, name, status)")
+    .eq("store_id", profile.store_id)
+    .order("status")
+    .order("name");
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as Employee[];
+  return (data ?? []) as EmployeeWithStore[];
 }
 
-export async function listEmployeeAccountInvites() {
+export async function listEmployeeAccountInvites(options: { scope?: "current" | "tenant" } = {}) {
   if (!hasSupabaseEnv()) return [] satisfies EmployeeAccountInvite[];
 
+  const profile = await requireProfile();
   const supabase = await createClient();
+  const scope = options.scope ?? "current";
+
+  if (scope === "tenant" && profile.role === "owner" && hasSupabaseAdminEnv()) {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("employee_account_invites")
+      .select("*, stores!inner(id, tenant_id, status)")
+      .eq("stores.tenant_id", profile.tenant_id)
+      .eq("stores.status", "active")
+      .order("updated_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return (data ?? []) as EmployeeAccountInvite[];
+  }
+
   const { data, error } = await supabase
     .from("employee_account_invites")
     .select("*")
+    .eq("store_id", profile.store_id)
     .order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message);

@@ -8,6 +8,7 @@ import { requirePermission, requireProfile } from "@/lib/auth";
 import { createAdminClient, createClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const employeeSchema = z.object({
+  store_id: z.string().uuid().optional(),
   name: z.string().trim().min(1),
   phone: z.string().trim().optional(),
   position: z.string().trim().min(1),
@@ -43,16 +44,49 @@ export async function createEmployeeAction(formData: FormData) {
   const profile = await requireProfile();
   requirePermission(profile, "employee.manage");
   const payload = employeeSchema.parse(Object.fromEntries(formData));
+  const storeId = payload.store_id || profile.store_id;
 
   if (!hasSupabaseEnv()) {
     revalidatePath("/employees");
     redirect("/employees");
   }
 
+  const row = {
+    store_id: storeId,
+    name: payload.name,
+    phone: payload.phone || null,
+    position: payload.position,
+    hourly_rate: payload.hourly_rate,
+    hire_date: payload.hire_date,
+  };
+
+  if (storeId !== profile.store_id) {
+    if (!hasSupabaseAdminEnv()) {
+      throw new Error("跨门店新增员工需要配置 SUPABASE_SERVICE_ROLE_KEY。");
+    }
+
+    const admin = createAdminClient();
+    const { data: store, error: storeError } = await admin
+      .from("stores")
+      .select("id")
+      .eq("id", storeId)
+      .eq("tenant_id", profile.tenant_id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (storeError) throw new Error(storeError.message);
+    if (!store) throw new Error("门店不存在或不属于当前租户。");
+
+    const { error } = await admin.from("employees").insert(row);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/employees");
+    redirect("/employees");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("employees").insert({
-    store_id: profile.store_id,
-    ...payload,
+    ...row,
     phone: payload.phone || null,
   });
 

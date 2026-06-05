@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createEmployeeAccountAction, resetEmployeePasswordAction } from "@/lib/actions/staff";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { listEmployeeAccountInvites, listEmployees } from "@/lib/data/staff";
+import { listEmployeeAccountInvites, listEmployees, type EmployeeWithStore } from "@/lib/data/staff";
 import { hasPermission } from "@/lib/permissions";
 import { formatMoney } from "@/lib/utils";
 
@@ -18,10 +18,12 @@ export default async function EmployeesPage() {
   const profile = await requireProfile();
   requirePermission(profile, "employee.view");
   const canManageEmployees = hasPermission(profile, "employee.manage");
-  const [employees, accountInvites] = await Promise.all([
-    listEmployees(),
-    canManageEmployees ? listEmployeeAccountInvites() : Promise.resolve([]),
+  const employeeScope = profile.role === "owner" ? "tenant" : "current";
+  const [employeeRows, accountInvites] = await Promise.all([
+    listEmployees({ scope: employeeScope }),
+    canManageEmployees ? listEmployeeAccountInvites({ scope: employeeScope }) : Promise.resolve([]),
   ]);
+  const employees = employeeRows as EmployeeWithStore[];
   const inviteByEmployeeId = new Map(accountInvites.map((invite) => [invite.employee_id, invite]));
 
   return (
@@ -35,6 +37,7 @@ export default async function EmployeesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
+                <TableHead>门店</TableHead>
                 <TableHead>电话</TableHead>
                 <TableHead>职位</TableHead>
                 <TableHead>时薪</TableHead>
@@ -47,6 +50,7 @@ export default async function EmployeesPage() {
               {employees.map((employee) => (
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">{employee.name}</TableCell>
+                  <TableCell>{employee.stores?.name ?? employee.store_id}</TableCell>
                   <TableCell>{employee.phone ?? "-"}</TableCell>
                   <TableCell>{employee.position}</TableCell>
                   <TableCell>{formatMoney(employee.hourly_rate)}</TableCell>
