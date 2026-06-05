@@ -144,6 +144,59 @@ export function StoreModuleQuickForm({
   );
 }
 
+export function PlatformCurrentStoreSwitchForm({
+  currentStoreId,
+  stores,
+  action,
+}: {
+  currentStoreId: string;
+  stores: Array<{ id: string; label: string; status: RecordStatus }>;
+  action: (formData: FormData) => Promise<unknown>;
+}) {
+  const router = useRouter();
+  const activeStores = stores.filter((store) => store.status === "active");
+  const [storeId, setStoreId] = useState(currentStoreId);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        setError(null);
+        startTransition(async () => {
+          try {
+            await action(new FormData(form));
+            router.push("/dashboard");
+            router.refresh();
+          } catch {
+            setError("切换失败，请确认目标门店处于启用状态。");
+          }
+        });
+      }}
+      className="space-y-3"
+    >
+      <Select name="store_id" value={storeId} onChange={(event) => setStoreId(event.target.value)} required>
+        {activeStores.map((store) => (
+          <option key={store.id} value={store.id}>
+            {store.label}
+          </option>
+        ))}
+      </Select>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs leading-5 text-stone-500">
+          切换后，你的后台会进入所选门店的数据范围。
+        </div>
+        <Button disabled={isPending || storeId === currentStoreId}>
+          {isPending ? "切换中" : "切换并进入"}
+        </Button>
+      </div>
+      {error ? <div className="text-sm text-red-600">{error}</div> : null}
+    </form>
+  );
+}
+
 export function StoreModuleEntitlementCells({
   storeId,
   moduleKey,

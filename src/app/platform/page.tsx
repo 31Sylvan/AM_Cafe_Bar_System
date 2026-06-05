@@ -3,12 +3,12 @@ import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { updatePlatformStoreStatusAction, updateStoreModuleEntitlementAction } from "@/lib/actions/platform";
+import { switchPlatformCurrentStoreAction, updatePlatformStoreStatusAction, updateStoreModuleEntitlementAction } from "@/lib/actions/platform";
 import { requirePlatformAdmin, requireProfile } from "@/lib/auth";
 import { getPlatformDashboardData } from "@/lib/data/platform";
 import { platformModules } from "@/lib/platform";
 import type { PlatformStoreOverview } from "@/lib/types";
-import { StoreModuleEntitlementCells, StoreModuleQuickForm, StoreStatusControl } from "./platform-live-controls";
+import { PlatformCurrentStoreSwitchForm, StoreModuleEntitlementCells, StoreModuleQuickForm, StoreStatusControl } from "./platform-live-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,30 @@ export default async function PlatformPage() {
         <Metric label="启用门店" value={`${activeStores.length}`} />
         <Metric label="已开通模块记录" value={`${entitlementCount}`} />
       </div>
+
+      <Card className="mb-5">
+        <CardHeader>
+          <CardTitle>平台账号当前门店切换</CardTitle>
+          <CardDescription>
+            系统拥有者可以直接把当前登录账号切换到任意启用门店，用于验收该门店的数据、权限、导入和报表。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activeStores.length === 0 ? (
+            <EmptyState title="暂无可切换门店" description="启用至少一家门店后，平台账号可以直接进入该门店上下文。" />
+          ) : (
+            <PlatformCurrentStoreSwitchForm
+              currentStoreId={profile.store_id}
+              stores={data.stores.map((store) => ({
+                id: store.id,
+                label: `${store.tenants?.name ?? store.tenant_id} · ${store.name}`,
+                status: store.status,
+              }))}
+              action={switchPlatformCurrentStoreAction}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
         <Card>
