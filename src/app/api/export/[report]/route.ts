@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/auth";
 import { csvResponse, toCsv } from "@/lib/export/csv";
-import { listCostSummary, listExpenseRecords, listMonthCloseSnapshots, listProfitLoss, getCashflowSummary } from "@/lib/data/finance";
+import {
+  getCashflowStatement,
+  listCostSummary,
+  listExpenseRecords,
+  listMonthCloseSnapshots,
+  listProfitLossByFilter,
+} from "@/lib/data/finance";
 import { listInventoryBalances, listInventoryMovements, listReplenishmentSuggestions } from "@/lib/data/inventory";
 import { listProductSalesReport, listWasteSummary } from "@/lib/data/reports";
 import { listEmployeePerformance } from "@/lib/data/staff";
@@ -10,9 +16,13 @@ export const dynamic = "force-dynamic";
 
 const ownerOnlyReports = new Set(["profit-loss", "cashflow", "expenses", "costs", "employees", "month-close", "replenishment"]);
 
-export async function GET(_request: Request, { params }: { params: Promise<{ report: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ report: string }> }) {
   const profile = await requireProfile();
   const { report } = await params;
+  const searchParams = new URL(request.url).searchParams;
+  const month = cleanMonth(searchParams.get("month"));
+  const from = cleanDate(searchParams.get("from"));
+  const to = cleanDate(searchParams.get("to"));
 
   if (ownerOnlyReports.has(report) && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -104,9 +114,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
       );
     }
     case "profit-loss": {
-      const rows = await listProfitLoss();
+      const rows = await listProfitLossByFilter({ month });
       return csvResponse(
-        "profit-loss.csv",
+        `profit-loss${month ? `-${month}` : ""}.csv`,
         toCsv(
           ["月份", "收入", "原料成本", "毛利", "毛利率", "人工", "房租", "水电", "营销", "其他", "净利润"],
           rows.map((row) => [
@@ -146,12 +156,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
       );
     }
     case "cashflow": {
-      const row = await getCashflowSummary();
+      const statement = await getCashflowStatement({ month, from, to });
       return csvResponse(
-        "cashflow.csv",
+        `cashflow${month ? `-${month}` : ""}.csv`,
         toCsv(
-          ["总收入", "总支出", "现金余额"],
-          [[row?.total_income ?? 0, row?.total_expense ?? 0, row?.cash_balance ?? 0]],
+          ["日期", "方向", "分类", "金额", "支付方式", "来源类型", "来源ID", "创建时间"],
+          [
+            ["汇总", "收入", "", statement.total_income, "", "", "", ""],
+            ["汇总", "支出", "", statement.total_expense, "", "", "", ""],
+            ["汇总", "净现金流", "", statement.net_cashflow, "", "", "", ""],
+            ...statement.transactions.map((row) => [
+              row.transaction_date,
+              row.direction === "income" ? "收入" : "支出",
+              row.category,
+              row.amount,
+              row.payment_method,
+              row.reference_type,
+              row.reference_id,
+              row.created_at,
+            ]),
+          ],
         ),
       );
     }
@@ -206,4 +230,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     default:
       return NextResponse.json({ error: "Unknown report" }, { status: 404 });
   }
+}
+
+function cleanMonth(value: string | null) {
+  return value && /^\d{4}-\d{2}$/.test(value) ? value : undefined;
+}
+
+function cleanDate(value: string | null) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
 }

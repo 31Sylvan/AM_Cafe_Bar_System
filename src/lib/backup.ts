@@ -59,7 +59,7 @@ export const backupReports: BackupReport[] = [
   {
     key: "cashflow",
     name: "现金流",
-    description: "总收入、总支出和现金余额。",
+    description: "现金收入、支出、支付方式、来源单据和月度净现金流。",
     href: "/api/export/cashflow",
     ownerOnly: true,
   },

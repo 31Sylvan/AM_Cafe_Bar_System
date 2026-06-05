@@ -355,6 +355,19 @@ export type CashflowSummary = {
   cash_balance: number;
 };
 
+export type CashTransaction = {
+  id: string;
+  store_id: string;
+  transaction_date: string;
+  direction: CashDirection;
+  category: string;
+  amount: number;
+  payment_method: PaymentMethod;
+  reference_type: string;
+  reference_id: string;
+  created_at: string;
+};
+
 export type MonthCloseSnapshot = {
   id: string;
   store_id: string;
