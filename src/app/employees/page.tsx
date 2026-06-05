@@ -1,12 +1,17 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Edit3, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createEmployeeAccountAction, resetEmployeePasswordAction } from "@/lib/actions/staff";
+import {
+  createEmployeeAccountAction,
+  deleteEmployeeAction,
+  resetEmployeePasswordAction,
+  updateEmployeeStatusAction,
+} from "@/lib/actions/staff";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { listEmployeeAccountInvites, listEmployees, type EmployeeWithStore } from "@/lib/data/staff";
 import { hasPermission } from "@/lib/permissions";
@@ -33,7 +38,7 @@ export default async function EmployeesPage() {
         <EmptyState title="暂无员工" description="添加员工后即可创建排班、统计绩效和计算提成。" />
       ) : (
         <TableContainer>
-          <Table className="min-w-[940px]">
+          <Table className="min-w-[1180px]">
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
@@ -44,6 +49,7 @@ export default async function EmployeesPage() {
                 <TableHead>入职日期</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>登录账号</TableHead>
+                <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -55,7 +61,7 @@ export default async function EmployeesPage() {
                   <TableCell>{employee.position}</TableCell>
                   <TableCell>{formatMoney(employee.hourly_rate)}</TableCell>
                   <TableCell>{employee.hire_date}</TableCell>
-                  <TableCell><Badge>{employee.status === "active" ? "在职" : "离职"}</Badge></TableCell>
+                  <TableCell><Badge variant={employee.status === "active" ? "success" : "muted"}>{employee.status === "active" ? "在职" : "离职"}</Badge></TableCell>
                   <TableCell>
                     {employee.profile_id ? (
                       <div className="grid min-w-[280px] gap-2">
@@ -85,6 +91,40 @@ export default async function EmployeesPage() {
                     ) : (
                       <span className="text-sm text-stone-500">未绑定</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-2">
+                      {canManageEmployees ? (
+                        <>
+                          <Button asChild size="sm" variant="secondary">
+                            <Link href={`/employees/${employee.id}/edit`}>
+                              <Edit3 className="h-4 w-4" />
+                              编辑
+                            </Link>
+                          </Button>
+                          {employee.status === "active" ? (
+                            <ReactiveForm action={deleteEmployeeAction} successText="已删除">
+                              <input type="hidden" name="employee_id" value={employee.id} />
+                              <Button size="sm" variant="danger">
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </ReactiveForm>
+                          ) : (
+                            <ReactiveForm action={updateEmployeeStatusAction} successText="已恢复">
+                              <input type="hidden" name="employee_id" value={employee.id} />
+                              <input type="hidden" name="status" value="active" />
+                              <Button size="sm" variant="secondary">
+                                <RotateCcw className="h-4 w-4" />
+                                恢复
+                              </Button>
+                            </ReactiveForm>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-stone-400">-</span>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

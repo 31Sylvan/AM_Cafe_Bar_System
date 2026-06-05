@@ -40,6 +40,15 @@ const employeePasswordResetSchema = z.object({
   password: z.string().min(8),
 });
 
+const employeeStatusSchema = z.object({
+  employee_id: z.string().uuid(),
+  status: z.enum(["active", "inactive"]),
+});
+
+const employeeDeleteSchema = z.object({
+  employee_id: z.string().uuid(),
+});
+
 export async function createEmployeeAction(formData: FormData) {
   const profile = await requireProfile();
   requirePermission(profile, "employee.manage");
@@ -94,6 +103,112 @@ export async function createEmployeeAction(formData: FormData) {
 
   revalidatePath("/employees");
   redirect("/employees");
+}
+
+export async function updateEmployeeAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "employee.manage");
+  const employeeId = z.string().uuid().parse(formData.get("employee_id"));
+  const payload = employeeSchema.parse(Object.fromEntries(formData));
+  const storeId = payload.store_id || profile.store_id;
+
+  if (!hasSupabaseEnv()) {
+    revalidatePath("/employees");
+    redirect("/employees");
+  }
+
+  const row = {
+    store_id: storeId,
+    name: payload.name,
+    phone: payload.phone || null,
+    position: payload.position,
+    hourly_rate: payload.hourly_rate,
+    hire_date: payload.hire_date,
+  };
+
+  if (hasSupabaseAdminEnv()) {
+    const admin = createAdminClient();
+    await assertStoreInTenant(admin, storeId, profile.tenant_id);
+    await assertEmployeeInTenant(admin, employeeId, profile.tenant_id);
+
+    const { error } = await admin.from("employees").update(row).eq("id", employeeId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/employees");
+    redirect("/employees");
+  }
+
+  if (storeId !== profile.store_id) {
+    throw new Error("跨门店编辑员工需要配置 SUPABASE_SERVICE_ROLE_KEY。");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("employees")
+    .update(row)
+    .eq("id", employeeId)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/employees");
+  redirect("/employees");
+}
+
+export async function updateEmployeeStatusAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "employee.manage");
+  const payload = employeeStatusSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/employees"]);
+  }
+
+  if (hasSupabaseAdminEnv()) {
+    const admin = createAdminClient();
+    await assertEmployeeInTenant(admin, payload.employee_id, profile.tenant_id);
+    const { error } = await admin.from("employees").update({ status: payload.status }).eq("id", payload.employee_id);
+    if (error) throw new Error(error.message);
+    return await revalidatePaths(["/employees", "/performance", "/commissions"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("employees")
+    .update({ status: payload.status })
+    .eq("id", payload.employee_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/employees", "/performance", "/commissions"]);
+}
+
+export async function deleteEmployeeAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "employee.manage");
+  const payload = employeeDeleteSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/employees"]);
+  }
+
+  if (hasSupabaseAdminEnv()) {
+    const admin = createAdminClient();
+    await assertEmployeeInTenant(admin, payload.employee_id, profile.tenant_id);
+    const { error } = await admin.from("employees").update({ status: "inactive" }).eq("id", payload.employee_id);
+    if (error) throw new Error(error.message);
+    return await revalidatePaths(["/employees", "/performance", "/commissions"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("employees")
+    .update({ status: "inactive" })
+    .eq("id", payload.employee_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/employees", "/performance", "/commissions"]);
 }
 
 export async function createShiftAction(formData: FormData) {
@@ -156,26 +271,33 @@ export async function createEmployeeAccountAction(formData: FormData) {
     return await revalidatePaths(["/employees"]);
   }
 
+  const admin = hasSupabaseAdminEnv() ? createAdminClient() : null;
   const supabase = await createClient();
-  const { data: employee, error: employeeError } = await supabase
+  const employeeQuery = admin ?? supabase;
+  const { data: employee, error: employeeError } = await employeeQuery
     .from("employees")
-    .select("id, store_id, name, phone, profile_id")
+    .select("id, store_id, name, phone, profile_id, stores!inner(tenant_id)")
     .eq("id", payload.employee_id)
-    .eq("store_id", profile.store_id)
-    .single();
+    .maybeSingle();
 
   if (employeeError || !employee) {
     throw new Error(employeeError?.message ?? "员工不存在");
+  }
+
+  const employeeTenantId = (employee.stores as { tenant_id?: string } | null)?.tenant_id;
+  if (employeeTenantId !== profile.tenant_id) {
+    throw new Error("员工不属于当前租户。");
   }
 
   if (employee.profile_id) {
     throw new Error("该员工已经绑定登录账号");
   }
 
-  const { error: inviteError } = await supabase.from("employee_account_invites").upsert(
+  const writeClient = admin ?? supabase;
+  const { error: inviteError } = await writeClient.from("employee_account_invites").upsert(
     {
       tenant_id: profile.tenant_id,
-      store_id: profile.store_id,
+      store_id: employee.store_id,
       employee_id: payload.employee_id,
       email: payload.email,
       role: "staff",
@@ -188,18 +310,17 @@ export async function createEmployeeAccountAction(formData: FormData) {
 
   if (inviteError) throw new Error(inviteError.message);
 
-  if (!hasSupabaseAdminEnv()) {
+  if (!admin) {
     return await revalidatePaths(["/employees"]);
   }
 
-  const admin = createAdminClient();
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: payload.email,
     password: payload.password,
     email_confirm: true,
     user_metadata: {
       display_name: employee.name,
-      store_id: profile.store_id,
+      store_id: employee.store_id,
       tenant_id: profile.tenant_id,
       role: "staff",
     },
@@ -210,10 +331,10 @@ export async function createEmployeeAccountAction(formData: FormData) {
   }
 
   const authUserId = created.user.id;
-  const { error: profileError } = await supabase.from("profiles").insert({
+  const { error: profileError } = await admin.from("profiles").insert({
     id: authUserId,
     tenant_id: profile.tenant_id,
-    store_id: profile.store_id,
+    store_id: employee.store_id,
     role: "staff",
     display_name: employee.name,
     phone: employee.phone,
@@ -222,9 +343,9 @@ export async function createEmployeeAccountAction(formData: FormData) {
 
   if (profileError) throw new Error(profileError.message);
 
-  const { error: membershipError } = await supabase.from("store_memberships").insert({
+  const { error: membershipError } = await admin.from("store_memberships").insert({
     tenant_id: profile.tenant_id,
-    store_id: profile.store_id,
+    store_id: employee.store_id,
     profile_id: authUserId,
     role: "staff",
     status: "active",
@@ -232,22 +353,22 @@ export async function createEmployeeAccountAction(formData: FormData) {
 
   if (membershipError) throw new Error(membershipError.message);
 
-  const { error: bindError } = await supabase
+  const { error: bindError } = await admin
     .from("employees")
     .update({ profile_id: authUserId })
     .eq("id", payload.employee_id)
-    .eq("store_id", profile.store_id);
+    .eq("store_id", employee.store_id);
 
   if (bindError) throw new Error(bindError.message);
 
-  const { error: updateInviteError } = await supabase
+  const { error: updateInviteError } = await admin
     .from("employee_account_invites")
     .update({
       auth_user_id: authUserId,
       status: "created",
       updated_at: new Date().toISOString(),
     })
-    .eq("store_id", profile.store_id)
+    .eq("store_id", employee.store_id)
     .eq("employee_id", payload.employee_id);
 
   if (updateInviteError) throw new Error(updateInviteError.message);
@@ -268,23 +389,26 @@ export async function resetEmployeePasswordAction(formData: FormData) {
     throw new Error("重置员工密码需要配置 SUPABASE_SERVICE_ROLE_KEY。");
   }
 
-  const supabase = await createClient();
-  const { data: employee, error: employeeError } = await supabase
+  const admin = createAdminClient();
+  const { data: employee, error: employeeError } = await admin
     .from("employees")
-    .select("id, store_id, profile_id")
+    .select("id, store_id, profile_id, stores!inner(tenant_id)")
     .eq("id", payload.employee_id)
-    .eq("store_id", profile.store_id)
-    .single();
+    .maybeSingle();
 
   if (employeeError || !employee) {
     throw new Error(employeeError?.message ?? "员工不存在");
+  }
+
+  const employeeTenantId = (employee.stores as { tenant_id?: string } | null)?.tenant_id;
+  if (employeeTenantId !== profile.tenant_id) {
+    throw new Error("员工不属于当前租户。");
   }
 
   if (!employee.profile_id) {
     throw new Error("该员工尚未绑定登录账号");
   }
 
-  const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(employee.profile_id, {
     password: payload.password,
   });
@@ -292,4 +416,37 @@ export async function resetEmployeePasswordAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   return await revalidatePaths(["/employees"]);
+}
+
+async function assertStoreInTenant(
+  admin: ReturnType<typeof createAdminClient>,
+  storeId: string,
+  tenantId: string,
+) {
+  const { data, error } = await admin
+    .from("stores")
+    .select("id")
+    .eq("id", storeId)
+    .eq("tenant_id", tenantId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("门店不存在或不属于当前租户。");
+}
+
+async function assertEmployeeInTenant(
+  admin: ReturnType<typeof createAdminClient>,
+  employeeId: string,
+  tenantId: string,
+) {
+  const { data, error } = await admin
+    .from("employees")
+    .select("id, stores!inner(tenant_id)")
+    .eq("id", employeeId)
+    .eq("stores.tenant_id", tenantId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("员工不存在或不属于当前租户。");
 }

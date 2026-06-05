@@ -40,6 +40,38 @@ export async function listEmployees(options: { scope?: "current" | "tenant" } = 
   return (data ?? []) as EmployeeWithStore[];
 }
 
+export async function getEmployeeForEdit(employeeId: string) {
+  if (!hasSupabaseEnv()) {
+    return demoEmployees.find((employee) => employee.id === employeeId) ?? null;
+  }
+
+  const profile = await requireProfile();
+
+  if (hasSupabaseAdminEnv()) {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("employees")
+      .select("*, stores!inner(id, name, status, tenant_id)")
+      .eq("id", employeeId)
+      .eq("stores.tenant_id", profile.tenant_id)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data as EmployeeWithStore | null;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("employees")
+    .select("*, stores(id, name, status)")
+    .eq("id", employeeId)
+    .eq("store_id", profile.store_id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data as EmployeeWithStore | null;
+}
+
 export async function listEmployeeAccountInvites(options: { scope?: "current" | "tenant" } = {}) {
   if (!hasSupabaseEnv()) return [] satisfies EmployeeAccountInvite[];
 
