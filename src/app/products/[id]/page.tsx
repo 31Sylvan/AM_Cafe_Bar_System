@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +12,20 @@ import { formatQty } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+const postgresUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 export default async function ProductRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!postgresUuid.test(id)) {
+    redirect("/products");
+  }
+
   const profile = await requireProfile();
   requirePermission(profile, "product.manage");
   const [product, recipe, items] = await Promise.all([getProduct(id), listRecipe(id), listInventoryItems()]);
 
   if (!product) {
-    return null;
+    redirect("/products");
   }
 
   return (
