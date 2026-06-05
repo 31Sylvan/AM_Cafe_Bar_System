@@ -23,6 +23,10 @@ export default async function FinancePage() {
         <FinanceCard title="本月净利润" value={formatMoney(latestProfit?.net_profit ?? 0)} href="/finance/profit-loss" />
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Link className="rounded-md border border-stone-200 bg-white p-5 hover:border-emerald-300" href="/finance/analysis">
+          <h2 className="font-semibold">经营分析导出</h2>
+          <p className="mt-2 text-sm text-stone-500">选择月份预览经营数据，并导出包含利润表和现金流量表的 Excel。</p>
+        </Link>
         <Link className="rounded-md border border-stone-200 bg-white p-5 hover:border-emerald-300" href="/finance/expenses">
           <h2 className="font-semibold">支出记录</h2>
           <p className="mt-2 text-sm text-stone-500">录入工资、房租、水电、营销等支出，并自动进入现金流。</p>
