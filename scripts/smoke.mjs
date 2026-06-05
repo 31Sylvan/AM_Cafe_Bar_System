@@ -126,6 +126,12 @@ const checks = [
     options: {},
     expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
   },
+  {
+    name: "platform protected route",
+    url: "/platform",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
   ...(demoAuthEnabled ? [{
     name: "dashboard demo auth",
     url: "/dashboard",

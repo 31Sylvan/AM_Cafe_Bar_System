@@ -1,13 +1,26 @@
 import { Building2, ShieldCheck } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { switchPlatformCurrentStoreAction, updatePlatformStoreStatusAction, updateStoreModuleEntitlementAction } from "@/lib/actions/platform";
+import {
+  createPlatformStoreAction,
+  createPlatformTenantAction,
+  switchPlatformCurrentStoreAction,
+  updatePlatformStoreAction,
+  updatePlatformStoreStatusAction,
+  updatePlatformTenantAction,
+  updateStoreModuleEntitlementAction,
+} from "@/lib/actions/platform";
 import { requirePlatformAdmin, requireProfile } from "@/lib/auth";
 import { getPlatformDashboardData } from "@/lib/data/platform";
 import { platformModules } from "@/lib/platform";
-import type { PlatformStoreOverview } from "@/lib/types";
+import type { PlatformStoreOverview, Tenant } from "@/lib/types";
 import { PlatformCurrentStoreSwitchForm, StoreModuleEntitlementCells, StoreModuleQuickForm, StoreStatusControl } from "./platform-live-controls";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +63,91 @@ export default async function PlatformPage() {
         <Metric label="已开通模块记录" value={`${entitlementCount}`} />
       </div>
 
+      <div className="mb-5 grid gap-5 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>新增租户</CardTitle>
+            <CardDescription>为新的咖啡店品牌或经营主体创建独立租户。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReactiveForm action={createPlatformTenantAction} className="grid gap-4" successText="租户已创建">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="tenant-name">租户名称</Label>
+                  <Input id="tenant-name" name="name" placeholder="例如 Aroma Melody" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tenant-slug">租户标识</Label>
+                  <Input id="tenant-slug" name="slug" placeholder="aroma-melody" required />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="tenant-status">状态</Label>
+                  <Select id="tenant-status" name="status" defaultValue="active">
+                    <option value="active">启用</option>
+                    <option value="inactive">暂停</option>
+                    <option value="disabled">停用</option>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button>创建租户</Button>
+              </div>
+            </ReactiveForm>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>新增门店</CardTitle>
+            <CardDescription>平台直接为任意租户开新门店，并自动授予平台账号 owner 成员关系。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReactiveForm action={createPlatformStoreAction} className="grid gap-4" successText="门店已创建">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="store-tenant-id">所属租户</Label>
+                  <Select id="store-tenant-id" name="tenant_id" required disabled={data.tenants.length === 0}>
+                    <option value="">选择租户</option>
+                    {data.tenants.map((tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.name} / {tenant.slug}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="store-name">门店名称</Label>
+                  <Input id="store-name" name="name" placeholder="例如 社区二楼店" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="store-business-mode">经营模式</Label>
+                  <Input id="store-business-mode" name="business_mode" defaultValue="早咖夜酒" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="store-timezone">时区</Label>
+                  <Input id="store-timezone" name="timezone" defaultValue="Asia/Shanghai" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="store-status">状态</Label>
+                  <Select id="store-status" name="status" defaultValue="active">
+                    <option value="active">启用</option>
+                    <option value="inactive">暂停</option>
+                    <option value="disabled">停用</option>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="store-address">地址</Label>
+                  <Input id="store-address" name="address" placeholder="门店地址" />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button disabled={data.tenants.length === 0}>创建门店</Button>
+              </div>
+            </ReactiveForm>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="mb-5">
         <CardHeader>
           <CardTitle>平台账号当前门店切换</CardTitle>
@@ -70,6 +168,24 @@ export default async function PlatformPage() {
               }))}
               action={switchPlatformCurrentStoreAction}
             />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader>
+          <CardTitle>租户管理</CardTitle>
+          <CardDescription>维护租户名称、标识和启停状态。停用租户不会物理删除历史数据。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {data.tenants.length === 0 ? (
+            <EmptyState title="暂无租户" description="创建租户后可以继续创建门店并开通模块。" />
+          ) : (
+            <div className="grid gap-3">
+              {data.tenants.map((tenant) => (
+                <TenantEditForm key={tenant.id} tenant={tenant} />
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -230,6 +346,10 @@ function StoreModuleMatrix({ store }: { store: PlatformStoreOverview }) {
         </div>
       </div>
 
+      <div className="border-b border-[var(--line)] px-4 py-4">
+        <StoreEditForm store={store} />
+      </div>
+
       <TableContainer className="rounded-none border-0 shadow-none">
         <Table className="min-w-[960px]">
           <TableHeader>
@@ -264,6 +384,69 @@ function StoreModuleMatrix({ store }: { store: PlatformStoreOverview }) {
         </Table>
       </TableContainer>
     </section>
+  );
+}
+
+function TenantEditForm({ tenant }: { tenant: Tenant }) {
+  return (
+    <ReactiveForm action={updatePlatformTenantAction} className="rounded-md border border-[var(--line)] bg-white p-4" successText="租户已更新">
+      <input type="hidden" name="tenant_id" value={tenant.id} />
+      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_130px_auto] lg:items-end">
+        <div className="space-y-1">
+          <Label htmlFor={`tenant-name-${tenant.id}`}>租户名称</Label>
+          <Input id={`tenant-name-${tenant.id}`} name="name" defaultValue={tenant.name} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`tenant-slug-${tenant.id}`}>租户标识</Label>
+          <Input id={`tenant-slug-${tenant.id}`} name="slug" defaultValue={tenant.slug} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`tenant-status-${tenant.id}`}>状态</Label>
+          <Select id={`tenant-status-${tenant.id}`} name="status" defaultValue={tenant.status}>
+            <option value="active">启用</option>
+            <option value="inactive">暂停</option>
+            <option value="disabled">停用</option>
+          </Select>
+        </div>
+        <Button size="sm">保存租户</Button>
+      </div>
+    </ReactiveForm>
+  );
+}
+
+function StoreEditForm({ store }: { store: PlatformStoreOverview }) {
+  return (
+    <ReactiveForm action={updatePlatformStoreAction} className="grid gap-3" successText="门店资料已更新">
+      <input type="hidden" name="store_id" value={store.id} />
+      <input type="hidden" name="tenant_id" value={store.tenant_id} />
+      <div className="grid gap-3 lg:grid-cols-[1fr_140px_160px_130px_auto] lg:items-end">
+        <div className="space-y-1">
+          <Label htmlFor={`store-name-${store.id}`}>门店名称</Label>
+          <Input id={`store-name-${store.id}`} name="name" defaultValue={store.name} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`store-mode-${store.id}`}>经营模式</Label>
+          <Input id={`store-mode-${store.id}`} name="business_mode" defaultValue={store.business_mode} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`store-timezone-${store.id}`}>时区</Label>
+          <Input id={`store-timezone-${store.id}`} name="timezone" defaultValue={store.timezone} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`store-status-${store.id}`}>状态</Label>
+          <Select id={`store-status-${store.id}`} name="status" defaultValue={store.status}>
+            <option value="active">启用</option>
+            <option value="inactive">暂停</option>
+            <option value="disabled">停用</option>
+          </Select>
+        </div>
+        <Button size="sm">保存门店</Button>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`store-address-${store.id}`}>地址</Label>
+        <Input id={`store-address-${store.id}`} name="address" defaultValue={store.address ?? ""} />
+      </div>
+    </ReactiveForm>
   );
 }
 
