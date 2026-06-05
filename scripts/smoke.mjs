@@ -102,6 +102,30 @@ const checks = [
     options: {},
     expect: (body) => body.includes("coffee-shop-os-v1") && body.includes("fetch"),
   },
+  {
+    name: "commissions protected route",
+    url: "/commissions",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
+  {
+    name: "shifts protected route",
+    url: "/shifts",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
+  {
+    name: "shift edit protected route",
+    url: "/shifts/00000000-0000-0000-0000-000000000000/edit",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
+  {
+    name: "month close protected route",
+    url: "/finance/month-close",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
   ...(demoAuthEnabled ? [{
     name: "dashboard demo auth",
     url: "/dashboard",

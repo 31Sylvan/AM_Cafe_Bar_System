@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { updateShiftStatusAction } from "@/lib/actions/staff";
+import { deleteShiftAction, updateShiftStatusAction } from "@/lib/actions/staff";
 import { requireProfile } from "@/lib/auth";
 import { listShifts } from "@/lib/data/staff";
 
@@ -45,6 +45,23 @@ export default async function ShiftsPage() {
                     <input type="hidden" name="shift_id" value={shift.id} />
                     <input type="hidden" name="status" value="completed" />
                     <Button size="sm" variant="secondary">完成</Button>
+                  </ReactiveForm>
+                ) : null}
+                {profile.role === "owner" ? (
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/shifts/${shift.id}/edit`}>
+                      <Pencil className="h-3.5 w-3.5" />
+                      编辑
+                    </Link>
+                  </Button>
+                ) : null}
+                {profile.role === "owner" ? (
+                  <ReactiveForm action={deleteShiftAction} successText="已删除">
+                    <input type="hidden" name="shift_id" value={shift.id} />
+                    <Button size="sm" variant="danger">
+                      <Trash2 className="h-3.5 w-3.5" />
+                      删除
+                    </Button>
                   </ReactiveForm>
                 ) : null}
               </div>

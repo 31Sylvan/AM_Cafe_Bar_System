@@ -3,7 +3,8 @@ import { ReactiveForm } from "@/components/app/reactive-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createCommissionRuleAction } from "@/lib/actions/staff";
+import { Select } from "@/components/ui/select";
+import { createCommissionRuleAction, deleteCommissionRuleAction, updateCommissionRuleAction } from "@/lib/actions/staff";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { listCommissionRules } from "@/lib/data/staff";
 import { formatMoney } from "@/lib/utils";
@@ -46,15 +47,42 @@ export default async function CommissionsPage() {
           ) : (
             <div className="divide-y divide-stone-100">
               {rules.map((rule) => (
-                <div key={rule.id} className="flex items-center justify-between p-4 text-sm">
-                  <div>
-                    <div className="font-medium">{rule.month}</div>
-                    <div className="text-stone-500">奖金池比例 {(Number(rule.bonus_pool_rate) * 100).toFixed(2)}%</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">{formatMoney(rule.revenue_target)}</div>
-                    <div className="text-stone-500">目标营业额</div>
-                  </div>
+                <div key={rule.id} className="p-4 text-sm">
+                  <ReactiveForm action={updateCommissionRuleAction} successText="规则已更新">
+                    <input type="hidden" name="rule_id" value={rule.id} />
+                    <div className="grid gap-3 lg:grid-cols-[150px_1fr_130px_130px_auto] lg:items-end">
+                      <div className="space-y-1">
+                        <Label htmlFor={`month-${rule.id}`}>月份</Label>
+                        <Input id={`month-${rule.id}`} name="month" type="month" defaultValue={String(rule.month).slice(0, 7)} required />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`target-${rule.id}`}>营业额目标</Label>
+                        <Input id={`target-${rule.id}`} name="revenue_target" type="number" min="0" step="0.01" defaultValue={Number(rule.revenue_target)} required />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`rate-${rule.id}`}>奖金池比例</Label>
+                        <Input id={`rate-${rule.id}`} name="bonus_pool_rate" type="number" min="0" max="1" step="0.0001" defaultValue={Number(rule.bonus_pool_rate)} required />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`status-${rule.id}`}>状态</Label>
+                        <Select id={`status-${rule.id}`} name="status" defaultValue={rule.status}>
+                          <option value="active">启用</option>
+                          <option value="inactive">停用</option>
+                        </Select>
+                      </div>
+                      <Button size="sm">保存</Button>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3 text-xs text-stone-500">
+                      <span>当前目标 {formatMoney(rule.revenue_target)}，奖金池比例 {(Number(rule.bonus_pool_rate) * 100).toFixed(2)}%</span>
+                      <span>{rule.status === "active" ? "启用中" : "已停用"}</span>
+                    </div>
+                  </ReactiveForm>
+                  <ReactiveForm action={deleteCommissionRuleAction} successText="规则已删除">
+                    <input type="hidden" name="rule_id" value={rule.id} />
+                    <div className="mt-3 flex justify-end">
+                      <Button size="sm" variant="danger">删除规则</Button>
+                    </div>
+                  </ReactiveForm>
                 </div>
               ))}
             </div>

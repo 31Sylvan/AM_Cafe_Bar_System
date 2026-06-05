@@ -19,6 +19,10 @@ const monthCloseSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
 });
 
+const monthCloseDeleteSchema = z.object({
+  snapshot_id: z.string().uuid(),
+});
+
 const expenseUpdateSchema = expenseSchema.extend({
   expense_id: z.string().uuid(),
 });
@@ -161,5 +165,25 @@ export async function createMonthCloseSnapshotAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
+  return await revalidatePaths(["/finance/month-close"]);
+}
+
+export async function deleteMonthCloseSnapshotAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "finance.manage");
+  const payload = monthCloseDeleteSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/finance/month-close"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("month_close_snapshots")
+    .delete()
+    .eq("id", payload.snapshot_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
   return await revalidatePaths(["/finance/month-close"]);
 }

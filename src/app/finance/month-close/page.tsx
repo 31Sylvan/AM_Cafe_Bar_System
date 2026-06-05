@@ -5,7 +5,7 @@ import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createMonthCloseSnapshotAction } from "@/lib/actions/finance";
+import { createMonthCloseSnapshotAction, deleteMonthCloseSnapshotAction } from "@/lib/actions/finance";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { listMonthCloseSnapshots } from "@/lib/data/finance";
 import { formatMoney } from "@/lib/utils";
@@ -53,6 +53,7 @@ export default async function MonthClosePage() {
                 <th className="px-4 py-3">成本差异</th>
                 <th className="px-4 py-3">现金余额</th>
                 <th className="px-4 py-3">月结时间</th>
+                <th className="px-4 py-3">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -68,6 +69,12 @@ export default async function MonthClosePage() {
                   <td className="px-4 py-3">{formatMoney(row.cost_variance)}</td>
                   <td className="px-4 py-3">{formatMoney(row.cash_balance)}</td>
                   <td className="px-4 py-3 text-stone-500">{new Date(row.closed_at).toLocaleString("zh-CN")}</td>
+                  <td className="px-4 py-3">
+                    <ReactiveForm action={deleteMonthCloseSnapshotAction} successText="已删除">
+                      <input type="hidden" name="snapshot_id" value={row.id} />
+                      <Button size="sm" variant="danger">删除</Button>
+                    </ReactiveForm>
+                  </td>
                 </tr>
               ))}
             </tbody>

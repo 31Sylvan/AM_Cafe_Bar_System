@@ -28,10 +28,28 @@ const shiftStatusSchema = z.object({
   status: z.enum(["scheduled", "completed", "canceled"]),
 });
 
+const shiftUpdateSchema = shiftSchema.extend({
+  shift_id: z.string().uuid(),
+  status: z.enum(["scheduled", "completed", "canceled"]),
+});
+
+const shiftDeleteSchema = z.object({
+  shift_id: z.string().uuid(),
+});
+
 const commissionRuleSchema = z.object({
   month: z.string().min(1),
   revenue_target: z.coerce.number().min(0),
   bonus_pool_rate: z.coerce.number().min(0).max(1),
+});
+
+const commissionRuleUpdateSchema = commissionRuleSchema.extend({
+  rule_id: z.string().uuid(),
+  status: z.enum(["active", "inactive"]),
+});
+
+const commissionRuleDeleteSchema = z.object({
+  rule_id: z.string().uuid(),
 });
 
 const employeeAccountSchema = z.object({
@@ -258,6 +276,57 @@ export async function updateShiftStatusAction(formData: FormData) {
   return await revalidatePaths(["/shifts", "/performance", "/commissions"]);
 }
 
+export async function updateShiftAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "shift.manage");
+  const payload = shiftUpdateSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    revalidatePath("/shifts");
+    redirect("/shifts");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shifts")
+    .update({
+      employee_id: payload.employee_id,
+      start_time: payload.start_time,
+      end_time: payload.end_time,
+      role: payload.role,
+      status: payload.status,
+    })
+    .eq("id", payload.shift_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/shifts");
+  revalidatePath("/performance");
+  revalidatePath("/commissions");
+  redirect("/shifts");
+}
+
+export async function deleteShiftAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "shift.manage");
+  const payload = shiftDeleteSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/shifts", "/performance", "/commissions"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shifts")
+    .delete()
+    .eq("id", payload.shift_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/shifts", "/performance", "/commissions"]);
+}
+
 export async function createCommissionRuleAction(formData: FormData) {
   const profile = await requireProfile();
   requirePermission(profile, "commission.manage");
@@ -285,6 +354,57 @@ export async function createCommissionRuleAction(formData: FormData) {
   await supabase.rpc("calculate_commission_allocations", { p_rule_id: rule.id });
 
   return await revalidatePaths(["/commissions"]);
+}
+
+export async function updateCommissionRuleAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "commission.manage");
+  const payload = commissionRuleUpdateSchema.parse(Object.fromEntries(formData));
+  const month = `${payload.month}-01`;
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/commissions"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("commission_rules")
+    .update({
+      month,
+      revenue_target: payload.revenue_target,
+      bonus_pool_rate: payload.bonus_pool_rate,
+      status: payload.status,
+    })
+    .eq("id", payload.rule_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+
+  if (payload.status === "active") {
+    await supabase.rpc("calculate_commission_allocations", { p_rule_id: payload.rule_id });
+  }
+
+  return await revalidatePaths(["/commissions", "/performance"]);
+}
+
+export async function deleteCommissionRuleAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "commission.manage");
+  const payload = commissionRuleDeleteSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/commissions"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("commission_rules")
+    .delete()
+    .eq("id", payload.rule_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/commissions", "/performance"]);
 }
 
 export async function createEmployeeAccountAction(formData: FormData) {

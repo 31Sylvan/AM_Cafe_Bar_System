@@ -116,6 +116,22 @@ export async function listShifts() {
   return (data ?? []) as Shift[];
 }
 
+export async function getShiftForEdit(shiftId: string) {
+  if (!hasSupabaseEnv()) return demoShifts.find((shift) => shift.id === shiftId) ?? null;
+
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shifts")
+    .select("*, employees(name, position)")
+    .eq("id", shiftId)
+    .eq("store_id", profile.store_id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data as Shift | null;
+}
+
 export async function listEmployeePerformance() {
   if (!hasSupabaseEnv()) return demoEmployeePerformance;
 
