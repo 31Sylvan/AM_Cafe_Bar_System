@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createStoreAction, switchCurrentStoreAction, updateStoreSettingsAction } from "@/lib/actions/settings";
+import { archiveStoreAction, createStoreAction, switchCurrentStoreAction, updateStoreSettingsAction } from "@/lib/actions/settings";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { getAvailableStores, getCurrentStore } from "@/lib/data/settings";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
+import { StoreArchiveForm, StoreStatusBadge } from "./store-management";
 
 export const dynamic = "force-dynamic";
 
@@ -50,36 +51,44 @@ export default async function SettingsPage() {
         </section>
 
         <section className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2">
-          <h2 className="font-semibold">门店切换</h2>
+          <h2 className="font-semibold">门店管理</h2>
+          <p className="mt-2 text-sm leading-6 text-stone-500">
+            老板可以在当前租户下新增门店、切换当前门店，或停用不再经营的门店。停用不会删除历史销售、库存和财务数据。
+          </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {memberships.map((membership) => {
               const memberStore = membership.stores;
               const active = membership.store_id === profile.store_id;
               return (
-                <form
+                <div
                   key={membership.id}
-                  action={switchCurrentStoreAction}
                   className={`rounded-md border p-4 ${
                     active ? "border-emerald-300 bg-emerald-50/70" : "border-stone-200 bg-stone-50"
                   }`}
                 >
-                  <input type="hidden" name="store_id" value={membership.store_id} />
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate font-medium text-stone-950">{memberStore?.name ?? membership.store_id}</div>
                       <div className="mt-1 text-xs text-stone-500">{memberStore?.business_mode ?? "早咖夜酒"}</div>
                     </div>
-                    <Badge className={active ? "border-emerald-200 bg-white text-emerald-800" : "border-stone-200 bg-white text-stone-600"}>
-                      {active ? "当前" : membership.role === "owner" ? "老板" : "店员"}
-                    </Badge>
+                    <StoreStatusBadge isCurrent={active} role={membership.role} />
                   </div>
                   <div className="mt-3 text-xs leading-5 text-stone-500">
                     {memberStore?.address || "未填写地址"}
                   </div>
-                  <Button className="mt-4 w-full" variant={active ? "secondary" : "default"} disabled={active}>
-                    {active ? "正在使用" : "切换到此门店"}
-                  </Button>
-                </form>
+                  <form action={switchCurrentStoreAction}>
+                    <input type="hidden" name="store_id" value={membership.store_id} />
+                    <Button className="mt-4 w-full" variant={active ? "secondary" : "default"} disabled={active}>
+                      {active ? "正在使用" : "切换到此门店"}
+                    </Button>
+                  </form>
+                  <StoreArchiveForm
+                    membership={membership}
+                    isCurrent={active}
+                    canArchive={memberships.length > 1}
+                    action={archiveStoreAction}
+                  />
+                </div>
               );
             })}
           </div>
@@ -109,7 +118,7 @@ export default async function SettingsPage() {
             <Button>保存门店设置</Button>
           </div>
         </ReactiveForm>
-        <form action={createStoreAction} className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2">
+        <ReactiveForm action={createStoreAction} className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2" successText="门店已创建">
           <h2 className="font-semibold">新增门店</h2>
           <p className="mt-2 text-sm leading-6 text-stone-500">
             新门店会归属到当前租户，老板自动成为该门店 owner。新增后可在上方切换门店并导入对应门店的数据。
@@ -135,7 +144,7 @@ export default async function SettingsPage() {
           <div className="mt-6 flex justify-end">
             <Button>创建门店</Button>
           </div>
-        </form>
+        </ReactiveForm>
         <section className="rounded-md border border-stone-200 bg-white p-5">
           <h2 className="font-semibold">当前账号</h2>
           <div className="mt-4 space-y-3 text-sm">

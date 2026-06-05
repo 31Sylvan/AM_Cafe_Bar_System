@@ -6,13 +6,18 @@ import { z } from "zod";
 import { revalidatePaths } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { dashboardWidgetDefinitions, defaultInterfaceContent, navigationDefinitions } from "@/lib/interface-config";
-import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
+import { createAdminClient, createClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 
 const storeSchema = z.object({
   name: z.string().trim().min(1),
   business_mode: z.string().trim().min(1),
   address: z.string().trim().optional(),
   timezone: z.string().trim().min(1),
+});
+
+const archiveStoreSchema = z.object({
+  store_id: z.string().uuid(),
+  confirm_name: z.string().trim().min(1),
 });
 
 export async function updateStoreSettingsAction(formData: FormData) {
@@ -80,6 +85,72 @@ export async function createStoreAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   return await revalidatePaths(["/settings"]);
+}
+
+export async function archiveStoreAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "settings.manage");
+  const payload = archiveStoreSchema.parse(Object.fromEntries(formData));
+
+  if (payload.store_id === profile.store_id) {
+    throw new Error("不能删除当前正在使用的门店，请先切换到其他门店。");
+  }
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/settings"]);
+  }
+
+  if (!hasSupabaseAdminEnv()) {
+    throw new Error("删除门店需要配置 SUPABASE_SERVICE_ROLE_KEY。");
+  }
+
+  const admin = createAdminClient();
+  const { data: store, error: storeError } = await admin
+    .from("stores")
+    .select("id, tenant_id, name, status")
+    .eq("id", payload.store_id)
+    .eq("tenant_id", profile.tenant_id)
+    .maybeSingle();
+
+  if (storeError) throw new Error(storeError.message);
+  if (!store) throw new Error("门店不存在或不属于当前租户。");
+  if (store.status !== "active") throw new Error("门店已经停用。");
+  if (payload.confirm_name !== store.name) throw new Error("门店名称确认不一致。");
+
+  const { count, error: countError } = await admin
+    .from("stores")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", profile.tenant_id)
+    .eq("status", "active");
+
+  if (countError) throw new Error(countError.message);
+  if ((count ?? 0) <= 1) {
+    throw new Error("当前租户至少需要保留一家启用门店。");
+  }
+
+  const now = new Date().toISOString();
+  const [storeResult, membershipResult] = await Promise.all([
+    admin.from("stores").update({ status: "disabled" }).eq("id", payload.store_id).eq("tenant_id", profile.tenant_id),
+    admin
+      .from("store_memberships")
+      .update({ status: "disabled" })
+      .eq("tenant_id", profile.tenant_id)
+      .eq("store_id", payload.store_id),
+  ]);
+
+  if (storeResult.error) throw new Error(storeResult.error.message);
+  if (membershipResult.error) throw new Error(membershipResult.error.message);
+
+  const { error: entitlementError } = await admin
+    .from("store_module_entitlements")
+    .update({ enabled: false, note: `门店已停用 ${now}`, updated_by: profile.id, updated_at: now })
+    .eq("store_id", payload.store_id);
+
+  if (entitlementError && !entitlementError.message.includes("does not exist")) {
+    throw new Error(entitlementError.message);
+  }
+
+  return await revalidatePaths(["/", "/settings", "/platform"]);
 }
 
 export async function updateNavigationSettingsAction(formData: FormData) {

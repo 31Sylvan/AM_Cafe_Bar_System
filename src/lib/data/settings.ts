@@ -54,5 +54,5 @@ export async function getAvailableStores() {
     ] satisfies StoreMembership[];
   }
 
-  return data as StoreMembership[];
+  return (data as StoreMembership[]).filter((membership) => membership.stores?.status === "active");
 }
