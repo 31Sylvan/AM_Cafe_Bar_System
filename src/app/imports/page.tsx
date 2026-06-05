@@ -25,6 +25,9 @@ export default async function ImportsPage() {
               <Link href="/imports/readiness">查看试运行看板</Link>
             </Button>
             <Button asChild variant="secondary">
+              <Link href="/imports/validation">真实数据验收</Link>
+            </Button>
+            <Button asChild variant="secondary">
               <Link href="/imports/history">查看导入历史</Link>
             </Button>
           </div>

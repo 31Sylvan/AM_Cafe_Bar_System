@@ -48,6 +48,9 @@ export default async function ImportReadinessPage() {
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary">
+              <Link href="/imports/validation">真实数据验收</Link>
+            </Button>
+            <Button asChild variant="secondary">
               <Link href="/imports/history">导入历史</Link>
             </Button>
             <Button asChild>
