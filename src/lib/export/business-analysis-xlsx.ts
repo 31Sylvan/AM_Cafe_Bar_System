@@ -7,6 +7,7 @@ export function buildBusinessAnalysisXlsx(data: BusinessAnalysisData) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, buildProfitSheet(data), "利润表");
   XLSX.utils.book_append_sheet(workbook, buildCashflowSheet(data), "现金流量表");
+  XLSX.utils.book_append_sheet(workbook, buildChecksSheet(data), "逻辑校验");
   return XLSX.write(workbook, { bookType: "xlsx", type: "buffer" }) as Buffer;
 }
 
@@ -78,6 +79,8 @@ function buildProfitSheet(data: BusinessAnalysisData) {
 
 function buildCashflowSheet(data: BusinessAnalysisData) {
   const statement = data.cashflow;
+  const salesCash = statement.income_by_category["销售"] ?? 0;
+  const otherIncome = Math.max(0, statement.total_income - salesCash);
   const categoryTotal = (category: string) =>
     statement.transactions
       .filter((row) => row.direction === "expense" && row.category === category)
@@ -90,7 +93,8 @@ function buildCashflowSheet(data: BusinessAnalysisData) {
     [`时间：${data.rangeLabel}`, "", "", "", "", "", ""],
     ["项目", "金额", "备注说明", "", "", "", ""],
     ["一、经营活动产生的现金流量", "", "", "", "", "", ""],
-    ["销售商品、提供劳务收到的现金", statement.total_income, "本月堂食、外卖及线上平台实际收到的全部款项", "", "", "", ""],
+    ["销售商品、提供劳务收到的现金", salesCash, "本月堂食、外卖及线上平台实际收到的全部款项", "", "", "", ""],
+    ["收到其他与经营活动有关的现金", otherIncome, "采购退款、其他经营现金收入等", "", "", "", ""],
     ["经营活动现金流入小计", null, "", "", "", "", ""],
     ["购买商品、接受劳务支付的现金", purchase, "咖啡豆、牛奶、糖浆、酒水、包装杯具等采购支出", "", "", "", ""],
     ["支付给员工的现金", labor, "员工工资、绩效、提成等", "", "", "", ""],
@@ -141,18 +145,39 @@ function buildCashflowSheet(data: BusinessAnalysisData) {
     { wch: 38 },
   ];
 
-  setFormula(sheet, "B6", "SUM(B5)", statement.total_income);
-  setFormula(sheet, "B11", "SUM(B7:B10)", statement.total_expense);
-  setFormula(sheet, "B12", "B6-B11", statement.net_cashflow);
-  setFormula(sheet, "B15", "SUM(B14)", 0);
-  setFormula(sheet, "B17", "SUM(B16)", 0);
-  setFormula(sheet, "B18", "B15-B17", 0);
-  setFormula(sheet, "B23", "SUM(B22)", 0);
-  setFormula(sheet, "B24", "SUM(B20:B21)-B23", 0);
-  setFormula(sheet, "B25", "B12+B18+B24", statement.net_cashflow);
-  setFormula(sheet, "B27", "IF(B26=\"\",B25,B26+B25)", statement.net_cashflow);
-  formatMoney(sheet, ["B5:B27", "D31:D300"]);
-  markHeaders(sheet, ["A3:C3", "A30:G30"]);
+  setFormula(sheet, "B7", "SUM(B5:B6)", statement.total_income);
+  setFormula(sheet, "B12", "SUM(B8:B11)", statement.total_expense);
+  setFormula(sheet, "B13", "B7-B12", statement.net_cashflow);
+  setFormula(sheet, "B16", "SUM(B15)", 0);
+  setFormula(sheet, "B18", "SUM(B17)", 0);
+  setFormula(sheet, "B19", "B16-B18", 0);
+  setFormula(sheet, "B24", "SUM(B23)", 0);
+  setFormula(sheet, "B25", "SUM(B21:B22)-B24", 0);
+  setFormula(sheet, "B26", "B13+B19+B25", statement.net_cashflow);
+  setFormula(sheet, "B28", "IF(B27=\"\",B26,B27+B26)", statement.net_cashflow);
+  formatMoney(sheet, ["B5:B28", "D32:D300"]);
+  markHeaders(sheet, ["A3:C3", "A31:G31"]);
+  return sheet;
+}
+
+function buildChecksSheet(data: BusinessAnalysisData) {
+  const sheet = XLSX.utils.aoa_to_sheet([
+    [`${data.monthLabel}经营分析逻辑校验`, "", "", "", "", ""],
+    ["校验项", "预期值", "实际值", "差异", "状态", "说明"],
+    ...data.checks.map((check) => [
+      check.label,
+      check.expected,
+      check.actual,
+      check.difference,
+      check.status === "ok" ? "通过" : "需复核",
+      check.message,
+    ]),
+  ] satisfies CellValue[][]);
+
+  sheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+  sheet["!cols"] = [{ wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 28 }];
+  formatMoney(sheet, ["B3:D30"]);
+  markHeaders(sheet, ["A2:F2"]);
   return sheet;
 }
 

@@ -23,6 +23,17 @@ export type BusinessAnalysisData = {
   expensesByCategory: Record<string, number>;
   expenseNotesByCategory: Record<string, string>;
   cashflow: Awaited<ReturnType<typeof getCashflowStatement>>;
+  checks: BusinessAnalysisCheck[];
+};
+
+export type BusinessAnalysisCheck = {
+  key: string;
+  label: string;
+  expected: number;
+  actual: number;
+  difference: number;
+  status: "ok" | "warning";
+  message: string;
 };
 
 export async function listExpenseRecords() {
@@ -110,6 +121,8 @@ export async function getCashflowStatement(filter: FinanceDateFilter = {}) {
     total_income: Number(totalIncome.toFixed(2)),
     total_expense: Number(totalExpense.toFixed(2)),
     net_cashflow: Number((totalIncome - totalExpense).toFixed(2)),
+    income_by_category: totalsByCategory(transactions.filter((row) => row.direction === "income")),
+    expense_by_category: totalsByCategory(transactions.filter((row) => row.direction === "expense")),
   };
 }
 
@@ -140,6 +153,17 @@ export async function getBusinessAnalysis(month: string): Promise<BusinessAnalys
       expensesByCategory: {},
       expenseNotesByCategory: {},
       cashflow,
+      checks: buildBusinessAnalysisChecks({
+        profitLoss,
+        revenueByProductGroup: {
+          coffee: Number(profitLoss.revenue ?? 0),
+          nonCoffee: 0,
+          food: 0,
+          other: 0,
+        },
+        revenueByChannel: {},
+        cashflow,
+      }),
     };
   }
 
@@ -192,21 +216,30 @@ export async function getBusinessAnalysis(month: string): Promise<BusinessAnalys
     }
   }
 
+  const groupedRevenue = {
+    coffee: roundMoney(revenueByProductGroup.coffee),
+    nonCoffee: roundMoney(revenueByProductGroup.nonCoffee),
+    food: roundMoney(revenueByProductGroup.food),
+    other: roundMoney(revenueByProductGroup.other),
+  };
+  const roundedRevenueByChannel = Object.fromEntries(Object.entries(revenueByChannel).map(([key, value]) => [key, roundMoney(value)]));
+
   return {
     month: safeMonth,
     monthLabel,
     rangeLabel,
     profitLoss,
-    revenueByProductGroup: {
-      coffee: roundMoney(revenueByProductGroup.coffee),
-      nonCoffee: roundMoney(revenueByProductGroup.nonCoffee),
-      food: roundMoney(revenueByProductGroup.food),
-      other: roundMoney(revenueByProductGroup.other),
-    },
-    revenueByChannel,
+    revenueByProductGroup: groupedRevenue,
+    revenueByChannel: roundedRevenueByChannel,
     expensesByCategory,
     expenseNotesByCategory: Object.fromEntries(Array.from(notesByCategory.entries()).map(([category, notes]) => [category, Array.from(notes).join("；")])),
     cashflow,
+    checks: buildBusinessAnalysisChecks({
+      profitLoss,
+      revenueByProductGroup: groupedRevenue,
+      revenueByChannel: roundedRevenueByChannel,
+      cashflow,
+    }),
   };
 }
 
@@ -303,6 +336,68 @@ function formatMonthLabel(month: string) {
 
 function roundMoney(value: number) {
   return Number(value.toFixed(2));
+}
+
+function totalsByCategory(rows: CashTransaction[]) {
+  const totals: Record<string, number> = {};
+  for (const row of rows) {
+    totals[row.category] = roundMoney((totals[row.category] ?? 0) + Number(row.amount));
+  }
+  return totals;
+}
+
+function buildBusinessAnalysisChecks({
+  profitLoss,
+  revenueByProductGroup,
+  revenueByChannel,
+  cashflow,
+}: {
+  profitLoss: ProfitLoss;
+  revenueByProductGroup: BusinessAnalysisData["revenueByProductGroup"];
+  revenueByChannel: Record<string, number>;
+  cashflow: Awaited<ReturnType<typeof getCashflowStatement>>;
+}) {
+  const revenue = Number(profitLoss.revenue ?? 0);
+  const productGroupRevenue = sumValues(revenueByProductGroup);
+  const channelRevenue = sumValues(revenueByChannel);
+  const grossProfitExpected = roundMoney(Number(profitLoss.revenue) - Number(profitLoss.material_cost));
+  const netProfitExpected = roundMoney(
+    Number(profitLoss.revenue) -
+      Number(profitLoss.material_cost) -
+      Number(profitLoss.labor_cost) -
+      Number(profitLoss.rent_cost) -
+      Number(profitLoss.utility_cost) -
+      Number(profitLoss.marketing_cost) -
+      Number(profitLoss.other_cost),
+  );
+  const netCashflowExpected = roundMoney(Number(cashflow.total_income) - Number(cashflow.total_expense));
+
+  return [
+    check("revenue_product_group", "收入结构合计 = 利润表收入", revenue, productGroupRevenue),
+    check("revenue_channel", "渠道收入合计 = 利润表收入", revenue, channelRevenue),
+    check("gross_profit", "毛利 = 收入 - 原料成本", grossProfitExpected, Number(profitLoss.gross_profit)),
+    check("net_profit", "净利润公式一致", netProfitExpected, Number(profitLoss.net_profit)),
+    check("net_cashflow", "净现金流 = 现金收入 - 现金支出", netCashflowExpected, Number(cashflow.net_cashflow)),
+  ];
+}
+
+function check(key: string, label: string, expected: number, actual: number): BusinessAnalysisCheck {
+  const difference = roundMoney(actual - expected);
+  const status = Math.abs(difference) <= 0.05 ? "ok" : "warning";
+
+  return {
+    key,
+    label,
+    expected: roundMoney(expected),
+    actual: roundMoney(actual),
+    difference,
+    status,
+    message: status === "ok" ? "一致" : `差异 ${difference}`,
+  };
+}
+
+function sumValues(values: Record<string, number>) {
+  return roundMoney(Object.values(values).reduce((sum, value) => sum + Number(value), 0));
 }
 
 function readProductCategory(value: unknown): ProductCategory | null {

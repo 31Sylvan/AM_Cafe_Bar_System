@@ -91,6 +91,43 @@ export default async function BusinessAnalysisPage({
         </Card>
       </section>
 
+      <Card className="mb-5">
+        <CardHeader>
+          <CardTitle>逻辑校验</CardTitle>
+          <CardDescription>导出前自动核对收入、利润和现金流公式，发现差异时建议先回到销售、费用或现金流水检查。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-hidden rounded-md border border-[var(--line)]">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-stone-100 text-xs font-medium text-stone-500">
+                <tr>
+                  <th className="px-4 py-3">校验项</th>
+                  <th className="px-4 py-3">预期</th>
+                  <th className="px-4 py-3">实际</th>
+                  <th className="px-4 py-3">差异</th>
+                  <th className="px-4 py-3">状态</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--line)]">
+                {analysis.checks.map((check) => (
+                  <tr key={check.key}>
+                    <td className="px-4 py-3 font-medium">{check.label}</td>
+                    <td className="px-4 py-3">{formatMoney(check.expected)}</td>
+                    <td className="px-4 py-3">{formatMoney(check.actual)}</td>
+                    <td className="px-4 py-3">{formatMoney(check.difference)}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={check.status === "ok" ? "success" : "warning"}>
+                        {check.status === "ok" ? "通过" : "需复核"}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       <section className="grid gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
