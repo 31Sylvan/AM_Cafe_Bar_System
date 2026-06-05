@@ -138,6 +138,12 @@ const checks = [
     options: {},
     expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
   },
+  {
+    name: "trial validation export protected route",
+    url: "/api/export/trial-validation",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
   ...(demoAuthEnabled ? [{
     name: "dashboard demo auth",
     url: "/dashboard",

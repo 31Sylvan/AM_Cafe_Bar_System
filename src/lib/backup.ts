@@ -50,6 +50,13 @@ export const backupReports: BackupReport[] = [
     ownerOnly: true,
   },
   {
+    key: "trial-validation",
+    name: "真实数据验收",
+    description: "核对订单导入后销售、库存扣减、现金流和利润表是否闭环。",
+    href: "/api/export/trial-validation",
+    ownerOnly: true,
+  },
+  {
     key: "costs",
     name: "成本分析",
     description: "理论成本、实际成本和成本差异。",

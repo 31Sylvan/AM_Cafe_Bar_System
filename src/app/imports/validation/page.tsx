@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ExportButton } from "@/components/app/export-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +64,7 @@ export default async function ImportValidationPage({
             <Button asChild>
               <Link href={`/finance/analysis?month=${validation.month}`}>经营分析</Link>
             </Button>
+            <ExportButton report="trial-validation" label="导出验收 CSV" query={{ month: validation.month }} />
           </div>
         }
       />

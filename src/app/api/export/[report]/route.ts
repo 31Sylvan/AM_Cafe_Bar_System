@@ -11,12 +11,13 @@ import {
   listProfitLossByFilter,
 } from "@/lib/data/finance";
 import { listInventoryBalances, listInventoryMovements, listReplenishmentSuggestions } from "@/lib/data/inventory";
+import { getTrialRunValidation } from "@/lib/data/import-readiness";
 import { listProductSalesReport, listWasteSummary } from "@/lib/data/reports";
 import { listEmployeePerformance } from "@/lib/data/staff";
 
 export const dynamic = "force-dynamic";
 
-const ownerOnlyReports = new Set(["profit-loss", "cashflow", "business-analysis", "expenses", "costs", "employees", "month-close", "replenishment"]);
+const ownerOnlyReports = new Set(["profit-loss", "cashflow", "business-analysis", "trial-validation", "expenses", "costs", "employees", "month-close", "replenishment"]);
 
 export async function GET(request: Request, { params }: { params: Promise<{ report: string }> }) {
   const profile = await requireProfile();
@@ -186,6 +187,52 @@ export async function GET(request: Request, { params }: { params: Promise<{ repo
       const data = await getBusinessAnalysis(safeMonth);
       const workbook = buildBusinessAnalysisXlsx(data);
       return xlsxResponse(`${safeMonth}经营分析（利润表+现金流表）.xlsx`, workbook);
+    }
+    case "trial-validation": {
+      const safeMonth = month ?? new Date().toISOString().slice(0, 7);
+      const data = await getTrialRunValidation(safeMonth);
+      return csvResponse(
+        `trial-validation-${safeMonth}.csv`,
+        toCsv(
+          ["月份", "类型", "检查项", "预期", "实际", "差异", "状态", "说明"],
+          [
+            [data.monthLabel, "汇总", "销售订单数", "", data.summary.salesOrderCount, "", "", ""],
+            [data.monthLabel, "汇总", "销售收入", "", data.summary.salesRevenue, "", "", ""],
+            [data.monthLabel, "汇总", "销售现金收入", "", data.summary.cashSalesIncome, "", "", ""],
+            [data.monthLabel, "汇总", "现金差异", "", data.summary.cashDifference, "", "", ""],
+            [data.monthLabel, "汇总", "销售明细行", "", data.summary.salesLineCount, "", "", ""],
+            [data.monthLabel, "汇总", "理论成本", "", data.summary.theoreticalCost, "", "", ""],
+            [data.monthLabel, "汇总", "利润表原料成本", "", data.summary.profitLossMaterialCost, "", "", ""],
+            [data.monthLabel, "汇总", "销售扣减流水数", "", data.summary.saleMovementCount, "", "", ""],
+            [data.monthLabel, "汇总", "导入订单数", "", data.summary.importedOrderCount, "", "", ""],
+            [data.monthLabel, "汇总", "跳过/重复数", "", data.summary.duplicateSkippedCount, "", "", ""],
+            [data.monthLabel, "汇总", "失败批次数", "", data.summary.failedBatchCount, "", "", ""],
+            [data.monthLabel, "汇总", "预警批次数", "", data.summary.warningBatchCount, "", "", ""],
+            [data.monthLabel, "汇总", "缺配方商品数", "", data.summary.missingRecipeCount, "", "", ""],
+            [data.monthLabel, "汇总", "负库存数", "", data.summary.negativeInventoryCount, "", "", ""],
+            ...data.checks.map((check) => [
+              data.monthLabel,
+              "检查",
+              check.title,
+              check.expected,
+              check.actual,
+              check.difference,
+              check.status === "ok" ? "通过" : check.status === "warning" ? "需复核" : "阻塞",
+              check.message,
+            ]),
+            ...data.missingRecipeProducts.map((product) => [
+              data.monthLabel,
+              "缺配方商品",
+              `${product.category} · ${product.name}`,
+              "",
+              "",
+              "",
+              "需处理",
+              "请维护产品配方后重新验收。",
+            ]),
+          ],
+        ),
+      );
     }
     case "month-close": {
       const rows = await listMonthCloseSnapshots();
