@@ -6,7 +6,23 @@ export async function getCurrentStore() {
   if (!hasSupabaseEnv()) return demoStore;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("stores").select("*").single();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("未登录，无法获取当前门店。");
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("store_id")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError) throw new Error(profileError.message);
+
+  const { data, error } = await supabase.from("stores").select("*").eq("id", profile.store_id).single();
 
   if (error) throw new Error(error.message);
   return {
