@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Edit3, Plus, Trash2 } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { updateInventoryItemStatusAction } from "@/lib/actions/inventory";
 import { requireProfile } from "@/lib/auth";
 import { listInventoryBalances } from "@/lib/data/inventory";
 import { formatMoney, formatQty } from "@/lib/utils";
@@ -49,6 +51,7 @@ export default async function InventoryItemsPage() {
                 <TableHead>参考成本</TableHead>
                 <TableHead>库存价值</TableHead>
                 <TableHead>状态</TableHead>
+                {profile.role === "owner" ? <TableHead className="text-right">操作</TableHead> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -63,6 +66,26 @@ export default async function InventoryItemsPage() {
                   <TableCell>
                     {item.is_low_stock ? <Badge variant="warning">预警</Badge> : <Badge variant="success">正常</Badge>}
                   </TableCell>
+                  {profile.role === "owner" ? (
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button asChild size="sm" variant="secondary">
+                          <Link href={`/inventory/items/${item.item_id}/edit`}>
+                            <Edit3 className="h-4 w-4" />
+                            编辑
+                          </Link>
+                        </Button>
+                        <ReactiveForm action={updateInventoryItemStatusAction} successText="已停用">
+                          <input type="hidden" name="item_id" value={item.item_id} />
+                          <input type="hidden" name="status" value="inactive" />
+                          <Button size="sm" variant="secondary">
+                            <Trash2 className="h-4 w-4" />
+                            停用
+                          </Button>
+                        </ReactiveForm>
+                      </div>
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
             </TableBody>

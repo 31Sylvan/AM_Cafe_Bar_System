@@ -23,6 +23,11 @@ const shiftSchema = z.object({
   role: z.string().trim().min(1),
 });
 
+const shiftStatusSchema = z.object({
+  shift_id: z.string().uuid(),
+  status: z.enum(["scheduled", "completed", "canceled"]),
+});
+
 const commissionRuleSchema = z.object({
   month: z.string().min(1),
   revenue_target: z.coerce.number().min(0),
@@ -231,6 +236,26 @@ export async function createShiftAction(formData: FormData) {
 
   revalidatePath("/shifts");
   redirect("/shifts");
+}
+
+export async function updateShiftStatusAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "shift.manage");
+  const payload = shiftStatusSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/shifts", "/performance", "/commissions"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shifts")
+    .update({ status: payload.status })
+    .eq("id", payload.shift_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/shifts", "/performance", "/commissions"]);
 }
 
 export async function createCommissionRuleAction(formData: FormData) {

@@ -40,6 +40,20 @@ export async function listInventoryItems() {
   return (data ?? []) as InventoryItem[];
 }
 
+export async function getInventoryItem(itemId: string) {
+  if (!hasSupabaseEnv()) return demoInventoryItems.find((item) => item.id === itemId) ?? null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("inventory_items")
+    .select("*")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data as InventoryItem | null;
+}
+
 export type MovementFilter = DateRangeFilter & {
   movement_type?: InventoryMovementType | "all";
 };

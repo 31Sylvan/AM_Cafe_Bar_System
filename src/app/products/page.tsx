@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Link2, Plus } from "lucide-react";
+import { Edit3, Link2, Plus, Trash2 } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { updateProductStatusAction } from "@/lib/actions/products";
 import { requireProfile } from "@/lib/auth";
 import { listProductCosts } from "@/lib/data/products";
 import { formatMoney } from "@/lib/utils";
@@ -65,9 +67,32 @@ export default async function ProductsPage() {
                     <Badge>{product.theoretical_gross_margin}%</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <Link className="text-emerald-700 hover:text-emerald-900" href={`/products/${product.product_id}`}>
-                      配方
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild size="sm" variant="secondary">
+                        <Link href={`/products/${product.product_id}`}>
+                          <Link2 className="h-4 w-4" />
+                          配方
+                        </Link>
+                      </Button>
+                      {profile.role === "owner" ? (
+                        <>
+                          <Button asChild size="sm" variant="secondary">
+                            <Link href={`/products/${product.product_id}/edit`}>
+                              <Edit3 className="h-4 w-4" />
+                              编辑
+                            </Link>
+                          </Button>
+                          <ReactiveForm action={updateProductStatusAction} successText="已下架">
+                            <input type="hidden" name="product_id" value={product.product_id} />
+                            <input type="hidden" name="status" value="inactive" />
+                            <Button size="sm" variant="secondary">
+                              <Trash2 className="h-4 w-4" />
+                              下架
+                            </Button>
+                          </ReactiveForm>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

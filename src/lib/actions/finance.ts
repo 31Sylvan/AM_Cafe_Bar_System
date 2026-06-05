@@ -19,6 +19,14 @@ const monthCloseSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
 });
 
+const expenseUpdateSchema = expenseSchema.extend({
+  expense_id: z.string().uuid(),
+});
+
+const expenseDeleteSchema = z.object({
+  expense_id: z.string().uuid(),
+});
+
 export async function createExpenseRecordAction(formData: FormData) {
   const profile = await requireProfile();
   requirePermission(profile, "finance.manage");
@@ -47,6 +55,59 @@ export async function createExpenseRecordAction(formData: FormData) {
   revalidatePath("/finance/cashflow");
   revalidatePath("/finance/profit-loss");
   redirect("/finance/expenses");
+}
+
+export async function updateExpenseRecordAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "finance.manage");
+  const payload = expenseUpdateSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    revalidatePath("/finance");
+    revalidatePath("/finance/expenses");
+    redirect("/finance/expenses");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("expense_records")
+    .update({
+      expense_date: payload.expense_date,
+      category: payload.category,
+      amount: payload.amount,
+      payment_method: payload.payment_method,
+      note: payload.note || null,
+    })
+    .eq("id", payload.expense_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/finance");
+  revalidatePath("/finance/expenses");
+  revalidatePath("/finance/cashflow");
+  revalidatePath("/finance/profit-loss");
+  redirect("/finance/expenses");
+}
+
+export async function deleteExpenseRecordAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "finance.manage");
+  const payload = expenseDeleteSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/finance", "/finance/expenses", "/finance/cashflow", "/finance/profit-loss"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("expense_records")
+    .delete()
+    .eq("id", payload.expense_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/finance", "/finance/expenses", "/finance/cashflow", "/finance/profit-loss"]);
 }
 
 export async function createMonthCloseSnapshotAction(formData: FormData) {

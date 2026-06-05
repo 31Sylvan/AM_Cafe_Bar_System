@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { addRecipeItemAction } from "@/lib/actions/products";
+import { addRecipeItemAction, deleteRecipeItemAction } from "@/lib/actions/products";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { listInventoryItems } from "@/lib/data/inventory";
 import { getProduct, listRecipe } from "@/lib/data/products";
@@ -47,7 +47,14 @@ export default async function ProductRecipePage({ params }: { params: Promise<{ 
                     <div className="font-medium">{line.inventory_items?.name ?? line.item_id}</div>
                     <div className="text-stone-500">{line.inventory_items?.category}</div>
                   </div>
-                  <div className="font-medium">{formatQty(line.qty, line.unit)}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="font-medium">{formatQty(line.qty, line.unit)}</div>
+                    <ReactiveForm action={deleteRecipeItemAction} successText="已删除">
+                      <input type="hidden" name="recipe_id" value={line.id} />
+                      <input type="hidden" name="product_id" value={product.id} />
+                      <Button size="sm" variant="secondary">删除</Button>
+                    </ReactiveForm>
+                  </div>
                 </div>
               ))}
             </div>

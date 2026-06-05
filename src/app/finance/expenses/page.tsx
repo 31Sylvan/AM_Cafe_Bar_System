@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { deleteExpenseRecordAction } from "@/lib/actions/finance";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { listExpenseRecords } from "@/lib/data/finance";
 import { formatMoney } from "@/lib/utils";
@@ -44,6 +46,7 @@ export default async function ExpensesPage() {
                 <th className="px-4 py-3">金额</th>
                 <th className="px-4 py-3">支付方式</th>
                 <th className="px-4 py-3">备注</th>
+                <th className="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -56,6 +59,14 @@ export default async function ExpensesPage() {
                   <td className="px-4 py-3 font-medium">{formatMoney(expense.amount)}</td>
                   <td className="px-4 py-3">{expense.payment_method}</td>
                   <td className="px-4 py-3 text-stone-500">{expense.note ?? "-"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end">
+                      <ReactiveForm action={deleteExpenseRecordAction} successText="已删除">
+                        <input type="hidden" name="expense_id" value={expense.id} />
+                        <Button size="sm" variant="secondary">删除</Button>
+                      </ReactiveForm>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

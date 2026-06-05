@@ -13,11 +13,25 @@ const productSchema = z.object({
   sale_price: z.coerce.number().min(0),
 });
 
+const productUpdateSchema = productSchema.extend({
+  product_id: z.string().uuid(),
+});
+
+const productStatusSchema = z.object({
+  product_id: z.string().uuid(),
+  status: z.enum(["active", "inactive", "disabled"]),
+});
+
 const recipeSchema = z.object({
   product_id: z.string().uuid(),
   item_id: z.string().uuid(),
   qty: z.coerce.number().positive(),
   unit: z.enum(["g", "ml", "pcs"]),
+});
+
+const recipeDeleteSchema = z.object({
+  recipe_id: z.string().uuid(),
+  product_id: z.string().uuid(),
 });
 
 const productAliasSchema = z.object({
@@ -49,6 +63,53 @@ export async function createProductAction(formData: FormData) {
   redirect("/products");
 }
 
+export async function updateProductAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "product.manage");
+  const payload = productUpdateSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    revalidatePath("/products");
+    redirect("/products");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("products")
+    .update({
+      name: payload.name,
+      category: payload.category,
+      sale_price: payload.sale_price,
+    })
+    .eq("id", payload.product_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/products");
+  redirect("/products");
+}
+
+export async function updateProductStatusAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "product.manage");
+  const payload = productStatusSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/products", `/products/${payload.product_id}`, "/products/aliases"]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("products")
+    .update({ status: payload.status })
+    .eq("id", payload.product_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
+  return await revalidatePaths(["/products", `/products/${payload.product_id}`, "/products/aliases"]);
+}
+
 export async function addRecipeItemAction(formData: FormData) {
   const profile = await requireProfile();
   requirePermission(profile, "product.manage");
@@ -67,6 +128,27 @@ export async function addRecipeItemAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
+  return await revalidatePaths(["/products", `/products/${payload.product_id}`]);
+}
+
+export async function deleteRecipeItemAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "product.manage");
+  const payload = recipeDeleteSchema.parse(Object.fromEntries(formData));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/products", `/products/${payload.product_id}`]);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("recipes")
+    .delete()
+    .eq("id", payload.recipe_id)
+    .eq("product_id", payload.product_id)
+    .eq("store_id", profile.store_id);
+
+  if (error) throw new Error(error.message);
   return await revalidatePaths(["/products", `/products/${payload.product_id}`]);
 }
 
