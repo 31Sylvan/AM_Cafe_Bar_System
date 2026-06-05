@@ -268,6 +268,7 @@ export type WasteRecord = {
   photo_url: string | null;
   operator_id: string;
   created_at: string;
+  voided?: boolean;
   inventory_items?: Pick<InventoryItem, "name" | "unit" | "category" | "cost_price"> | null;
 };
 
@@ -279,6 +280,7 @@ export type StockCount = {
   operator_id: string;
   status: StockCountStatus;
   created_at: string;
+  voided?: boolean;
 };
 
 export type StockCountItem = {

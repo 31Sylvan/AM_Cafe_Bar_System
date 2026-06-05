@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { FilterBar } from "@/components/app/filter-bar";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { reverseStockCountAction } from "@/lib/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth";
@@ -68,6 +69,7 @@ export default async function StockCountsPage({
                 <th className="px-4 py-3">类型</th>
                 <th className="px-4 py-3">状态</th>
                 <th className="px-4 py-3">创建时间</th>
+                <th className="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -80,11 +82,26 @@ export default async function StockCountsPage({
                   </td>
                   <td className="px-4 py-3">{typeLabels[count.count_type]}</td>
                   <td className="px-4 py-3">
-                    <Badge className={count.status === "completed" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : undefined}>
-                      {count.status === "completed" ? "已完成" : "草稿"}
+                    <Badge
+                      variant={count.voided ? "muted" : count.status === "completed" ? "success" : "default"}
+                    >
+                      {count.voided ? "已冲正" : count.status === "completed" ? "已完成" : "草稿"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-stone-500">{new Date(count.created_at).toLocaleString("zh-CN")}</td>
+                  <td className="px-4 py-3 text-right">
+                    {profile.role === "owner" && count.status === "completed" && !count.voided ? (
+                      <form action={reverseStockCountAction}>
+                        <input type="hidden" name="stock_count_id" value={count.id} />
+                        <Button size="sm" variant="secondary">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          冲正
+                        </Button>
+                      </form>
+                    ) : (
+                      <span className="text-xs text-stone-400">-</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

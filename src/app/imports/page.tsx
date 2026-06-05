@@ -17,12 +17,17 @@ export default async function ImportsPage() {
       <section className="mb-5 rounded-md border border-violet-200 bg-violet-50 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="font-semibold text-violet-950">V3 导入批次历史</h2>
-            <p className="mt-1 text-sm text-violet-900">查看每次商品、库存、采购、配方和订单导入的来源文件、入库数量、跳过数量与预警数量。</p>
+            <h2 className="font-semibold text-violet-950">V3 真实数据试运行</h2>
+            <p className="mt-1 text-sm text-violet-900">先看导入就绪状态，再查看每次商品、库存、采购、配方和订单导入的结果。</p>
           </div>
-          <Button asChild variant="secondary">
-            <Link href="/imports/history">查看导入历史</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild>
+              <Link href="/imports/readiness">查看试运行看板</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/imports/history">查看导入历史</Link>
+            </Button>
+          </div>
         </div>
       </section>
       <section className="mb-5 rounded-md border border-sky-200 bg-sky-50 p-4">

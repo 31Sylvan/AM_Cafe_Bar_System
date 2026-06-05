@@ -159,6 +159,49 @@ export async function createWasteRecordAction(formData: FormData) {
   redirect("/waste");
 }
 
+export async function reverseWasteRecordAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "inventory.manage");
+  const wasteRecordId = z.string().uuid().parse(formData.get("waste_record_id"));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/waste", "/inventory/items", "/inventory/movements"]);
+  }
+
+  const supabase = await createClient();
+  const { data: record, error: recordError } = await supabase
+    .from("waste_records")
+    .select("id, store_id, item_id, qty")
+    .eq("id", wasteRecordId)
+    .single();
+
+  if (recordError || !record) throw new Error(recordError?.message ?? "损耗记录不存在");
+  if (record.store_id !== profile.store_id) throw new Error("不能处理其他门店的损耗记录");
+
+  const { data: existing, error: existingError } = await supabase
+    .from("inventory_movements")
+    .select("id")
+    .eq("reference_type", "waste_record_void")
+    .eq("reference_id", wasteRecordId)
+    .maybeSingle();
+
+  if (existingError) throw new Error(existingError.message);
+  if (existing) throw new Error("该损耗记录已经冲正，不能重复处理");
+
+  const { error } = await supabase.rpc("append_inventory_movement", {
+    p_item_id: record.item_id,
+    p_movement_type: "WASTE",
+    p_qty: Number(record.qty),
+    p_reference_type: "waste_record_void",
+    p_reference_id: wasteRecordId,
+    p_operator_id: profile.id,
+  });
+
+  if (error) throw new Error(error.message);
+
+  return await revalidatePaths(["/waste", "/inventory/items", "/inventory/movements", "/reports/waste"]);
+}
+
 export async function createStockCountAction(formData: FormData) {
   const profile = await requireProfile();
   requirePermission(profile, "stock_count.create");
@@ -229,4 +272,61 @@ export async function createStockCountAction(formData: FormData) {
   revalidatePath("/inventory/items");
   revalidatePath("/inventory/movements");
   redirect("/stock-counts");
+}
+
+export async function reverseStockCountAction(formData: FormData) {
+  const profile = await requireProfile();
+  requirePermission(profile, "inventory.manage");
+  const stockCountId = z.string().uuid().parse(formData.get("stock_count_id"));
+
+  if (!hasSupabaseEnv()) {
+    return await revalidatePaths(["/stock-counts", "/inventory/items", "/inventory/movements"]);
+  }
+
+  const supabase = await createClient();
+  const { data: count, error: countError } = await supabase
+    .from("stock_counts")
+    .select("id, store_id, status")
+    .eq("id", stockCountId)
+    .single();
+
+  if (countError || !count) throw new Error(countError?.message ?? "盘点单不存在");
+  if (count.store_id !== profile.store_id) throw new Error("不能处理其他门店的盘点单");
+  if (count.status !== "completed") throw new Error("只有已完成盘点单可以冲正");
+
+  const { data: existing, error: existingError } = await supabase
+    .from("inventory_movements")
+    .select("id")
+    .eq("reference_type", "stock_count_void")
+    .eq("reference_id", stockCountId)
+    .maybeSingle();
+
+  if (existingError) throw new Error(existingError.message);
+  if (existing) throw new Error("该盘点单已经冲正，不能重复处理");
+
+  const { data: movements, error: movementError } = await supabase
+    .from("inventory_movements")
+    .select("item_id, qty")
+    .eq("reference_type", "stock_count")
+    .eq("reference_id", stockCountId)
+    .eq("movement_type", "COUNT_ADJUST")
+    .order("created_at");
+
+  if (movementError) throw new Error(movementError.message);
+  if (!movements?.length) throw new Error("该盘点单没有库存调整流水，无需冲正");
+
+  for (const movement of movements) {
+    const { error } = await supabase.rpc("append_inventory_movement", {
+      p_item_id: movement.item_id,
+      p_movement_type: "COUNT_ADJUST",
+      p_qty: -1 * Number(movement.qty),
+      p_reference_type: "stock_count_void",
+      p_reference_id: stockCountId,
+      p_operator_id: profile.id,
+    });
+
+    if (error) throw new Error(error.message);
+  }
+
+  return await revalidatePaths(["/stock-counts", `/stock-counts/${stockCountId}`, "/inventory/items", "/inventory/movements"]);
 }

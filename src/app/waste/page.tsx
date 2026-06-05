@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { RotateCcw, Plus } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { reverseWasteRecordAction } from "@/lib/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth";
@@ -40,6 +41,8 @@ export default async function WastePage() {
                 <th className="px-4 py-3">数量</th>
                 <th className="px-4 py-3">金额</th>
                 <th className="px-4 py-3">照片</th>
+                <th className="px-4 py-3">状态</th>
+                <th className="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -61,6 +64,22 @@ export default async function WastePage() {
                       </a>
                     ) : (
                       <span className="text-stone-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {record.voided ? <Badge variant="muted">已冲正</Badge> : <Badge variant="warning">有效</Badge>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {profile.role === "owner" && !record.voided ? (
+                      <form action={reverseWasteRecordAction}>
+                        <input type="hidden" name="waste_record_id" value={record.id} />
+                        <Button size="sm" variant="secondary">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          冲正
+                        </Button>
+                      </form>
+                    ) : (
+                      <span className="text-xs text-stone-400">-</span>
                     )}
                   </td>
                 </tr>

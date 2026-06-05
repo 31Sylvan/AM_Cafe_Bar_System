@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RotateCcw } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
+import { reverseStockCountAction } from "@/lib/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth";
@@ -28,15 +30,27 @@ export default async function StockCountDetailPage({ params }: { params: Promise
         title="盘点单详情"
         description={`${count.count_date} / ${typeLabels[count.count_type]}`}
         action={
-          <Button asChild variant="secondary">
-            <Link href="/stock-counts">返回盘点列表</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {profile.role === "owner" && count.status === "completed" && !count.voided ? (
+              <form action={reverseStockCountAction}>
+                <input type="hidden" name="stock_count_id" value={count.id} />
+                <Button variant="secondary">
+                  <RotateCcw className="h-4 w-4" />
+                  冲正盘点
+                </Button>
+              </form>
+            ) : null}
+            <Button asChild variant="secondary">
+              <Link href="/stock-counts">返回盘点列表</Link>
+            </Button>
+          </div>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Summary label="盘点日期" value={count.count_date} />
         <Summary label="盘点类型" value={typeLabels[count.count_type]} />
+        <Summary label="状态" value={count.voided ? "已冲正" : count.status === "completed" ? "已完成" : "草稿"} />
         <Summary label="盘亏项" value={`${lossCount}`} />
         <Summary label="盘盈项" value={`${gainCount}`} />
       </div>

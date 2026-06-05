@@ -68,7 +68,9 @@ export async function listWasteRecords(filter: DateRangeFilter = {}) {
   const { data, error } = await query;
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as WasteRecord[];
+  const records = (data ?? []) as WasteRecord[];
+  const voidedIds = await getVoidedReferenceIds("waste_record_void", records.map((record) => record.id));
+  return records.map((record) => ({ ...record, voided: voidedIds.has(record.id) }));
 }
 
 export async function listStockCounts(filter: StatusFilter<StockCountStatus> = {}) {
@@ -94,7 +96,9 @@ export async function listStockCounts(filter: StatusFilter<StockCountStatus> = {
   const { data, error } = await query;
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as StockCount[];
+  const counts = (data ?? []) as StockCount[];
+  const voidedIds = await getVoidedReferenceIds("stock_count_void", counts.map((count) => count.id));
+  return counts.map((count) => ({ ...count, voided: voidedIds.has(count.id) }));
 }
 
 export async function getStockCount(stockCountId: string) {
@@ -115,5 +119,23 @@ export async function getStockCount(stockCountId: string) {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data as StockCountDetail | null;
+  const detail = data as StockCountDetail | null;
+  if (!detail) return null;
+
+  const voidedIds = await getVoidedReferenceIds("stock_count_void", [detail.id]);
+  return { ...detail, voided: voidedIds.has(detail.id) };
+}
+
+async function getVoidedReferenceIds(referenceType: string, referenceIds: string[]) {
+  if (referenceIds.length === 0) return new Set<string>();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("inventory_movements")
+    .select("reference_id")
+    .eq("reference_type", referenceType)
+    .in("reference_id", referenceIds);
+
+  if (error) throw new Error(error.message);
+  return new Set((data ?? []).map((row) => row.reference_id));
 }
