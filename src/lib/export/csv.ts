@@ -22,3 +22,13 @@ export function csvResponse(filename: string, csv: string) {
     },
   });
 }
+
+export function xlsxResponse(filename: string, data: Buffer | Uint8Array) {
+  const body = new Blob([new Uint8Array(data)]);
+  return new Response(body, {
+    headers: {
+      "content-disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+      "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    },
+  });
+}

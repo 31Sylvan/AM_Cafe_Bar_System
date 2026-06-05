@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/auth";
-import { csvResponse, toCsv } from "@/lib/export/csv";
+import { buildBusinessAnalysisXlsx } from "@/lib/export/business-analysis-xlsx";
+import { csvResponse, toCsv, xlsxResponse } from "@/lib/export/csv";
 import {
   getCashflowStatement,
+  getBusinessAnalysis,
   listCostSummary,
   listExpenseRecords,
   listMonthCloseSnapshots,
@@ -14,7 +16,7 @@ import { listEmployeePerformance } from "@/lib/data/staff";
 
 export const dynamic = "force-dynamic";
 
-const ownerOnlyReports = new Set(["profit-loss", "cashflow", "expenses", "costs", "employees", "month-close", "replenishment"]);
+const ownerOnlyReports = new Set(["profit-loss", "cashflow", "business-analysis", "expenses", "costs", "employees", "month-close", "replenishment"]);
 
 export async function GET(request: Request, { params }: { params: Promise<{ report: string }> }) {
   const profile = await requireProfile();
@@ -178,6 +180,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ repo
           ],
         ),
       );
+    }
+    case "business-analysis": {
+      const safeMonth = month ?? new Date().toISOString().slice(0, 7);
+      const data = await getBusinessAnalysis(safeMonth);
+      const workbook = buildBusinessAnalysisXlsx(data);
+      return xlsxResponse(`${safeMonth}经营分析（利润表+现金流表）.xlsx`, workbook);
     }
     case "month-close": {
       const rows = await listMonthCloseSnapshots();

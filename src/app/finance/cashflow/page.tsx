@@ -34,6 +34,7 @@ export default async function CashflowPage({
         description="销售收入和支出记录会自动形成现金流水，可按月份导出明细现金流表。"
         action={
           <div className="flex flex-wrap gap-2">
+            <ExportButton report="business-analysis" label="导出经营分析 XLSX" query={{ month }} />
             <ExportButton report="cashflow" label="导出本月现金流" query={{ month }} />
             <ExportButton report="cashflow" label="导出全部现金流" />
           </div>

@@ -43,6 +43,13 @@ export const backupReports: BackupReport[] = [
     ownerOnly: true,
   },
   {
+    key: "business-analysis",
+    name: "经营分析",
+    description: "按月生成包含利润表和现金流量表的 Excel 工作簿。",
+    href: "/api/export/business-analysis",
+    ownerOnly: true,
+  },
+  {
     key: "costs",
     name: "成本分析",
     description: "理论成本、实际成本和成本差异。",

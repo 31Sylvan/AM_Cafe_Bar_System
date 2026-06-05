@@ -32,6 +32,7 @@ export default async function ProfitLossPage({
         description="按月汇总营业收入、原料成本、人工、房租、水电、营销和净利润，可导出全部或指定月份。"
         action={
           <div className="flex flex-wrap gap-2">
+            <ExportButton report="business-analysis" label="导出经营分析 XLSX" query={{ month: selectedMonth }} />
             <ExportButton report="profit-loss" label="导出所选月份" query={{ month: selectedMonth }} />
             <ExportButton report="profit-loss" label="导出全部利润表" />
           </div>
