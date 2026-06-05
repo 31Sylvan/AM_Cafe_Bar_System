@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { revalidateAndReturn } from "@/lib/actions/refresh";
+import { revalidatePaths } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -56,7 +56,7 @@ export async function addRecipeItemAction(formData: FormData) {
   const payload = recipeSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/products", `/products/${payload.product_id}`], `/products/${payload.product_id}`);
+    return await revalidatePaths(["/products", `/products/${payload.product_id}`]);
   }
 
   const supabase = await createClient();
@@ -67,7 +67,7 @@ export async function addRecipeItemAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await revalidateAndReturn(["/products", `/products/${payload.product_id}`], `/products/${payload.product_id}`);
+  return await revalidatePaths(["/products", `/products/${payload.product_id}`]);
 }
 
 export async function createProductAliasAction(formData: FormData) {
@@ -77,8 +77,7 @@ export async function createProductAliasAction(formData: FormData) {
   const payload = productAliasSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/products/aliases");
-    redirect("/products/aliases");
+    return await revalidatePaths(["/products/aliases"]);
   }
 
   const supabase = await createClient();
@@ -92,9 +91,7 @@ export async function createProductAliasAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/products/aliases");
-  revalidatePath("/imports/orders");
-  redirect("/products/aliases");
+  return await revalidatePaths(["/products/aliases", "/imports/orders"]);
 }
 
 export async function deleteProductAliasAction(formData: FormData) {
@@ -104,7 +101,7 @@ export async function deleteProductAliasAction(formData: FormData) {
   const aliasId = z.string().uuid().parse(formData.get("alias_id"));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/products/aliases"], "/products/aliases");
+    return await revalidatePaths(["/products/aliases"]);
   }
 
   const supabase = await createClient();
@@ -116,5 +113,5 @@ export async function deleteProductAliasAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await revalidateAndReturn(["/products/aliases", "/imports/orders"], "/products/aliases");
+  return await revalidatePaths(["/products/aliases", "/imports/orders"]);
 }

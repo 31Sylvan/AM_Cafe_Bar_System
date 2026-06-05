@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,11 +57,11 @@ export default async function EmployeesPage() {
                       <div className="grid min-w-[280px] gap-2">
                         <Badge variant="success">已绑定</Badge>
                         {canManageEmployees ? (
-                          <form action={resetEmployeePasswordAction} className="flex gap-2">
+                          <ReactiveForm action={resetEmployeePasswordAction} className="flex gap-2" successText="密码已重置">
                             <input type="hidden" name="employee_id" value={employee.id} />
                             <Input name="password" type="text" placeholder="新密码，至少 8 位" minLength={8} required />
                             <Button size="sm" variant="secondary">重置</Button>
-                          </form>
+                          </ReactiveForm>
                         ) : null}
                       </div>
                     ) : inviteByEmployeeId.has(employee.id) ? (
@@ -69,14 +70,14 @@ export default async function EmployeesPage() {
                         <div className="text-xs text-stone-500">{inviteByEmployeeId.get(employee.id)?.email}</div>
                       </div>
                     ) : canManageEmployees ? (
-                      <form action={createEmployeeAccountAction} className="grid min-w-[360px] gap-2">
+                      <ReactiveForm action={createEmployeeAccountAction} className="grid min-w-[360px] gap-2" successText="账号已创建">
                         <input type="hidden" name="employee_id" value={employee.id} />
                         <Input name="email" type="email" placeholder="员工登录邮箱" required />
                         <div className="flex gap-2">
                           <Input name="password" type="text" placeholder="临时密码，至少 8 位" minLength={8} required />
                           <Button size="sm">创建账号</Button>
                         </div>
-                      </form>
+                      </ReactiveForm>
                     ) : (
                       <span className="text-sm text-stone-500">未绑定</span>
                     )}

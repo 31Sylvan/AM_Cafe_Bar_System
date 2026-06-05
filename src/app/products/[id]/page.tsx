@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +54,7 @@ export default async function ProductRecipePage({ params }: { params: Promise<{ 
           )}
         </section>
 
-        <form action={addRecipeItemAction} className="rounded-md border border-stone-200 bg-white p-5">
+        <ReactiveForm action={addRecipeItemAction} className="rounded-md border border-stone-200 bg-white p-5" successText="配方原料已添加">
           <input type="hidden" name="product_id" value={product.id} />
           <div className="space-y-4">
             <div className="space-y-2">
@@ -83,7 +84,7 @@ export default async function ProductRecipePage({ params }: { params: Promise<{ 
           <div className="mt-6 flex justify-end">
             <Button>添加配方原料</Button>
           </div>
-        </form>
+        </ReactiveForm>
       </div>
     </AppShell>
   );

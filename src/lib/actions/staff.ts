@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { revalidateAndReturn } from "@/lib/actions/refresh";
+import { revalidatePaths } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { createAdminClient, createClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -90,8 +90,7 @@ export async function createCommissionRuleAction(formData: FormData) {
   const payload = commissionRuleSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/commissions");
-    redirect("/commissions");
+    return await revalidatePaths(["/commissions"]);
   }
 
   const supabase = await createClient();
@@ -111,8 +110,7 @@ export async function createCommissionRuleAction(formData: FormData) {
 
   await supabase.rpc("calculate_commission_allocations", { p_rule_id: rule.id });
 
-  revalidatePath("/commissions");
-  redirect("/commissions");
+  return await revalidatePaths(["/commissions"]);
 }
 
 export async function createEmployeeAccountAction(formData: FormData) {
@@ -121,7 +119,7 @@ export async function createEmployeeAccountAction(formData: FormData) {
   const payload = employeeAccountSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/employees"], "/employees");
+    return await revalidatePaths(["/employees"]);
   }
 
   const supabase = await createClient();
@@ -157,7 +155,7 @@ export async function createEmployeeAccountAction(formData: FormData) {
   if (inviteError) throw new Error(inviteError.message);
 
   if (!hasSupabaseAdminEnv()) {
-    await revalidateAndReturn(["/employees"], "/employees");
+    return await revalidatePaths(["/employees"]);
   }
 
   const admin = createAdminClient();
@@ -220,7 +218,7 @@ export async function createEmployeeAccountAction(formData: FormData) {
 
   if (updateInviteError) throw new Error(updateInviteError.message);
 
-  await revalidateAndReturn(["/employees"], "/employees");
+  return await revalidatePaths(["/employees"]);
 }
 
 export async function resetEmployeePasswordAction(formData: FormData) {
@@ -229,7 +227,7 @@ export async function resetEmployeePasswordAction(formData: FormData) {
   const payload = employeePasswordResetSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/employees"], "/employees");
+    return await revalidatePaths(["/employees"]);
   }
 
   if (!hasSupabaseAdminEnv()) {
@@ -259,5 +257,5 @@ export async function resetEmployeePasswordAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await revalidateAndReturn(["/employees"], "/employees");
+  return await revalidatePaths(["/employees"]);
 }

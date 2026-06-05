@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { FilterBar } from "@/components/app/filter-bar";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { voidSaleOrderAction } from "@/lib/actions/operations";
@@ -88,10 +89,10 @@ export default async function SalesPage({
                   <td className="px-4 py-3 text-stone-500">{new Date(order.created_at).toLocaleString("zh-CN")}</td>
                   <td className="px-4 py-3">
                     {profile.role === "owner" && order.status !== "void" ? (
-                      <form action={voidSaleOrderAction}>
+                      <ReactiveForm action={voidSaleOrderAction} successText="已作废">
                         <input type="hidden" name="sales_order_id" value={order.id} />
                         <Button variant="secondary" size="sm">作废</Button>
-                      </form>
+                      </ReactiveForm>
                     ) : (
                       <span className="text-stone-400">-</span>
                     )}

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { requirePlatformAdmin, requireProfile } from "@/lib/auth";
-import { revalidateAndReturn } from "@/lib/actions/refresh";
+import { revalidatePaths } from "@/lib/actions/refresh";
 import { platformModules } from "@/lib/platform";
 import { createAdminClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -26,7 +26,7 @@ export async function updateStoreModuleEntitlementAction(formData: FormData) {
   const payload = entitlementSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv() || !hasSupabaseAdminEnv()) {
-    await revalidateAndReturn(["/platform"], "/platform");
+    return await revalidatePaths(["/platform"]);
   }
 
   const admin = createAdminClient();
@@ -43,7 +43,7 @@ export async function updateStoreModuleEntitlementAction(formData: FormData) {
   );
 
   if (error) throw new Error(error.message);
-  await revalidateAndReturn(["/platform"], "/platform");
+  return await revalidatePaths(["/platform"]);
 }
 
 export async function updatePlatformStoreStatusAction(formData: FormData) {
@@ -52,7 +52,7 @@ export async function updatePlatformStoreStatusAction(formData: FormData) {
   const payload = storeStatusSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv() || !hasSupabaseAdminEnv()) {
-    await revalidateAndReturn(["/platform"], "/platform");
+    return await revalidatePaths(["/platform"]);
   }
 
   const admin = createAdminClient();
@@ -62,5 +62,5 @@ export async function updatePlatformStoreStatusAction(formData: FormData) {
     .eq("id", payload.store_id);
 
   if (error) throw new Error(error.message);
-  await revalidateAndReturn(["/platform"], "/platform");
+  return await revalidatePaths(["/platform"]);
 }

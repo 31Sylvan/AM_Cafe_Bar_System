@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { revalidatePaths } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -55,8 +56,7 @@ export async function createMonthCloseSnapshotAction(formData: FormData) {
   const month = `${payload.month}-01`;
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/finance/month-close");
-    redirect("/finance/month-close");
+    return await revalidatePaths(["/finance/month-close"]);
   }
 
   const supabase = await createClient();
@@ -100,6 +100,5 @@ export async function createMonthCloseSnapshotAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/finance/month-close");
-  redirect("/finance/month-close");
+  return await revalidatePaths(["/finance/month-close"]);
 }

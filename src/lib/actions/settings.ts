@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { revalidateAndReturn } from "@/lib/actions/refresh";
+import { revalidatePaths } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { dashboardWidgetDefinitions, defaultInterfaceContent, navigationDefinitions } from "@/lib/interface-config";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
@@ -21,7 +21,7 @@ export async function updateStoreSettingsAction(formData: FormData) {
   const payload = storeSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/settings"], "/settings");
+    return await revalidatePaths(["/settings"]);
   }
 
   const supabase = await createClient();
@@ -37,7 +37,7 @@ export async function updateStoreSettingsAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await revalidateAndReturn(["/settings"], "/settings");
+  return await revalidatePaths(["/settings"]);
 }
 
 export async function switchCurrentStoreAction(formData: FormData) {
@@ -66,7 +66,7 @@ export async function createStoreAction(formData: FormData) {
   const payload = storeSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/settings"], "/settings");
+    return await revalidatePaths(["/settings"]);
   }
 
   const supabase = await createClient();
@@ -79,7 +79,7 @@ export async function createStoreAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await revalidateAndReturn(["/settings"], "/settings");
+  return await revalidatePaths(["/settings"]);
 }
 
 export async function updateNavigationSettingsAction(formData: FormData) {
@@ -113,7 +113,7 @@ export async function updateNavigationSettingsAction(formData: FormData) {
     if (error) throw new Error(error.message);
   }
 
-  await revalidateAndReturn(["/", "/settings/interface"], "/settings/interface");
+  return await revalidatePaths(["/", "/settings/interface"]);
 }
 
 export async function updateDashboardWidgetSettingsAction(formData: FormData) {
@@ -147,7 +147,7 @@ export async function updateDashboardWidgetSettingsAction(formData: FormData) {
     if (error) throw new Error(error.message);
   }
 
-  await revalidateAndReturn(["/dashboard", "/settings/interface"], "/settings/interface");
+  return await revalidatePaths(["/dashboard", "/settings/interface"]);
 }
 
 export async function updateInterfaceContentAction(formData: FormData) {
@@ -169,7 +169,7 @@ export async function updateInterfaceContentAction(formData: FormData) {
     if (error) throw new Error(error.message);
   }
 
-  await revalidateAndReturn(["/", "/dashboard", "/settings/interface"], "/settings/interface");
+  return await revalidatePaths(["/", "/dashboard", "/settings/interface"]);
 }
 
 export async function resetInterfaceSettingsAction() {
@@ -188,5 +188,5 @@ export async function resetInterfaceSettingsAction() {
     if (error) throw new Error(error.message);
   }
 
-  await revalidateAndReturn(["/", "/dashboard", "/settings/interface"], "/settings/interface");
+  return await revalidatePaths(["/", "/dashboard", "/settings/interface"]);
 }

@@ -1,8 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app/app-shell";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   resetInterfaceSettingsAction,
   updateDashboardWidgetSettingsAction,
@@ -12,7 +9,7 @@ import {
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { getInterfaceSettings } from "@/lib/data/interface-settings";
 import { defaultInterfaceContent } from "@/lib/interface-config";
-import { DashboardWidgetConfigForm, NavigationConfigForm, ResetInterfaceButton } from "./sortable-config-form";
+import { DashboardWidgetConfigForm, InterfaceContentForm, NavigationConfigForm, ResetInterfaceButton } from "./sortable-config-form";
 
 export const dynamic = "force-dynamic";
 
@@ -47,19 +44,7 @@ export default async function InterfaceSettingsPage() {
             <CardDescription>控制侧边栏品牌名称、工作台说明和 Dashboard 页面顶部文案。</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={updateInterfaceContentAction}>
-              <div className="grid gap-4 lg:grid-cols-2">
-                {contentFields.map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <Label htmlFor={field.key}>{field.label}</Label>
-                    <Input id={field.key} name={field.key} defaultValue={settings.content[field.key]} placeholder={field.placeholder} />
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex justify-end">
-                <Button>保存文案</Button>
-              </div>
-            </form>
+            <InterfaceContentForm content={settings.content} fields={[...contentFields]} action={updateInterfaceContentAction} />
           </CardContent>
         </Card>
 

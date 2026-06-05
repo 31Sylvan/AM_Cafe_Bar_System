@@ -1,4 +1,5 @@
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,7 @@ export default async function CommissionsPage() {
     <AppShell profile={profile}>
       <PageHeader title="提成系统" description="超额营业额乘以奖金池比例，再按工时占比分配。" />
       <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
-        <form action={createCommissionRuleAction} className="rounded-md border border-stone-200 bg-white p-5">
+        <ReactiveForm action={createCommissionRuleAction} className="rounded-md border border-stone-200 bg-white p-5" successText="提成规则已创建">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="month">月份</Label>
@@ -36,7 +37,7 @@ export default async function CommissionsPage() {
           <div className="mt-6 flex justify-end">
             <Button>创建并计算</Button>
           </div>
-        </form>
+        </ReactiveForm>
 
         <section className="rounded-md border border-stone-200 bg-white">
           <div className="border-b border-stone-200 p-4 font-semibold">提成规则</div>

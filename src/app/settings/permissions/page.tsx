@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +47,7 @@ export default async function PermissionSettingsPage() {
           </CardContent>
         </Card>
 
-        <form action={updateRolePermissionsAction} className="space-y-5">
+        <ReactiveForm action={updateRolePermissionsAction} className="space-y-5" successText="店员权限已保存">
           <input type="hidden" name="role" value="staff" />
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -97,7 +98,7 @@ export default async function PermissionSettingsPage() {
               </CardContent>
             </Card>
           ))}
-        </form>
+        </ReactiveForm>
       </div>
 
       <Card className="mt-5">
@@ -108,7 +109,7 @@ export default async function PermissionSettingsPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <form action={upsertMemberPermissionOverrideAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_160px_auto]">
+          <ReactiveForm action={upsertMemberPermissionOverrideAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_160px_auto]" successText="成员权限覆盖已保存">
             <Select name="profile_id" required>
               <option value="">选择成员</option>
               {editableMemberships.map((membership) => (
@@ -142,7 +143,7 @@ export default async function PermissionSettingsPage() {
               <option value="allow">允许</option>
             </Select>
             <Button>保存覆盖</Button>
-          </form>
+          </ReactiveForm>
 
           {overrides.length === 0 ? (
             <div className="rounded-md border border-dashed border-stone-300 bg-stone-50 p-6 text-sm text-stone-500">
@@ -179,12 +180,12 @@ export default async function PermissionSettingsPage() {
                         </td>
                         <td className="px-4 py-3 text-stone-500">{new Date(override.updated_at).toLocaleString("zh-CN")}</td>
                         <td className="px-4 py-3 text-right">
-                          <form action={deleteMemberPermissionOverrideAction}>
+                          <ReactiveForm action={deleteMemberPermissionOverrideAction} successText="已移除">
                             <input type="hidden" name="store_id" value={override.store_id} />
                             <input type="hidden" name="profile_id" value={override.profile_id} />
                             <input type="hidden" name="permission_key" value={override.permission_key} />
                             <Button size="sm" variant="secondary">移除</Button>
-                          </form>
+                          </ReactiveForm>
                         </td>
                       </tr>
                     );

@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { ExportButton } from "@/components/app/export-button";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ export default async function MonthClosePage() {
         description="将指定月份的利润、成本和现金余额固化成快照，便于复盘和对账。"
         action={<ExportButton report="month-close" />}
       />
-      <form action={createMonthCloseSnapshotAction} className="mb-5 flex flex-wrap items-end gap-3 rounded-md border border-stone-200 bg-white p-4">
+      <ReactiveForm action={createMonthCloseSnapshotAction} className="mb-5 flex flex-wrap items-end gap-3 rounded-md border border-stone-200 bg-white p-4" successText="月结快照已生成">
         <div className="space-y-1">
           <label className="text-xs font-medium text-stone-500" htmlFor="month">月结月份</label>
           <Input id="month" name="month" type="month" defaultValue={defaultMonth} className="h-9 w-44" required />
@@ -33,7 +34,7 @@ export default async function MonthClosePage() {
           <Lock className="h-4 w-4" />
           生成月结快照
         </Button>
-      </form>
+      </ReactiveForm>
 
       {rows.length === 0 ? (
         <EmptyState title="暂无月结快照" description="选择月份生成快照后，会在这里保留固定版本的经营结果。" />

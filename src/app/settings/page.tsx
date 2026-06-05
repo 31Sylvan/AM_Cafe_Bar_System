@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +85,7 @@ export default async function SettingsPage() {
           </div>
         </section>
 
-        <form action={updateStoreSettingsAction} className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2">
+        <ReactiveForm action={updateStoreSettingsAction} className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2" successText="门店设置已保存">
           <h2 className="font-semibold">当前门店设置</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -107,7 +108,7 @@ export default async function SettingsPage() {
           <div className="mt-6 flex justify-end">
             <Button>保存门店设置</Button>
           </div>
-        </form>
+        </ReactiveForm>
         <form action={createStoreAction} className="rounded-md border border-stone-200 bg-white p-5 xl:col-span-2">
           <h2 className="font-semibold">新增门店</h2>
           <p className="mt-2 text-sm leading-6 text-stone-500">

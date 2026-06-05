@@ -1,10 +1,12 @@
 "use client";
 
 import { GripVertical, RotateCcw, Save } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { DashboardWidgetSetting, NavigationSetting } from "@/lib/interface-config";
+import { Label } from "@/components/ui/label";
+import type { DashboardWidgetSetting, InterfaceContentSettings, NavigationSetting } from "@/lib/interface-config";
 
 type SortableItem = {
   key: string;
@@ -20,7 +22,7 @@ export function NavigationConfigForm({
   action,
 }: {
   items: NavigationSetting[];
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
 }) {
   const initialItems = useMemo<SortableItem[]>(
     () =>
@@ -52,7 +54,7 @@ export function DashboardWidgetConfigForm({
   action,
 }: {
   items: DashboardWidgetSetting[];
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
 }) {
   const initialItems = useMemo<SortableItem[]>(
     () =>
@@ -89,15 +91,18 @@ function SortableConfigForm({
   labelPlaceholder,
 }: {
   items: SortableItem[];
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
   keyField: string;
   labelField: string;
   positionField: string;
   hiddenField: string;
   labelPlaceholder: string;
 }) {
+  const router = useRouter();
   const [rows, setRows] = useState(items);
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [isPending, startTransition] = useTransition();
 
   function moveItem(fromKey: string, toKey: string) {
     setRows((current) => {
@@ -118,7 +123,20 @@ function SortableConfigForm({
 
   return (
     <form
-      action={action}
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        setStatus("saving");
+        startTransition(async () => {
+          try {
+            await action(new FormData(form));
+            setStatus("saved");
+            router.refresh();
+          } catch {
+            setStatus("error");
+          }
+        });
+      }}
       className="space-y-3"
     >
       <div className="space-y-2">
@@ -167,23 +185,103 @@ function SortableConfigForm({
           </div>
         ))}
       </div>
-      <div className="flex justify-end">
-        <Button>
+      <div className="flex items-center justify-end gap-3">
+        <SaveStatus status={status} />
+        <Button disabled={isPending || status === "saving"}>
           <Save className="h-4 w-4" />
-          保存配置
+          {status === "saving" ? "保存中" : "保存配置"}
         </Button>
       </div>
     </form>
   );
 }
 
-export function ResetInterfaceButton({ action }: { action: () => Promise<void> }) {
+export function InterfaceContentForm({
+  content,
+  fields,
+  action,
+}: {
+  content: InterfaceContentSettings;
+  fields: Array<{ key: keyof InterfaceContentSettings; label: string; placeholder: string }>;
+  action: (formData: FormData) => Promise<unknown>;
+}) {
+  const router = useRouter();
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [isPending, startTransition] = useTransition();
+
   return (
-    <form action={action}>
-      <Button variant="secondary">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        setStatus("saving");
+        startTransition(async () => {
+          try {
+            await action(new FormData(form));
+            setStatus("saved");
+            router.refresh();
+          } catch {
+            setStatus("error");
+          }
+        });
+      }}
+    >
+      <div className="grid gap-4 lg:grid-cols-2">
+        {fields.map((field) => (
+          <div key={field.key} className="space-y-2">
+            <Label htmlFor={field.key}>{field.label}</Label>
+            <Input id={field.key} name={field.key} defaultValue={content[field.key]} placeholder={field.placeholder} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 flex items-center justify-end gap-3">
+        <SaveStatus status={status} />
+        <Button disabled={isPending || status === "saving"}>{status === "saving" ? "保存中" : "保存文案"}</Button>
+      </div>
+    </form>
+  );
+}
+
+export function ResetInterfaceButton({ action }: { action: () => Promise<unknown> }) {
+  const router = useRouter();
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        setStatus("saving");
+        startTransition(async () => {
+          try {
+            await action();
+            setStatus("saved");
+            router.refresh();
+          } catch {
+            setStatus("error");
+          }
+        });
+      }}
+      className="flex items-center gap-3"
+    >
+      <SaveStatus status={status} />
+      <Button variant="secondary" disabled={isPending || status === "saving"}>
         <RotateCcw className="h-4 w-4" />
-        恢复默认配置
+        {status === "saving" ? "恢复中" : "恢复默认配置"}
       </Button>
     </form>
   );
+}
+
+function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
+  if (status === "idle") return null;
+
+  const label = {
+    saving: "正在保存",
+    saved: "已保存",
+    error: "保存失败",
+  }[status];
+
+  const className = status === "error" ? "text-red-600" : status === "saved" ? "text-emerald-700" : "text-stone-500";
+  return <span className={`text-sm ${className}`}>{label}</span>;
 }

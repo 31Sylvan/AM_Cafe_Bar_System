@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Link2, Trash2 } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
+import { ReactiveForm } from "@/components/app/reactive-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,7 @@ export default async function ProductAliasesPage() {
       />
 
       <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
-        <form action={createProductAliasAction} className="rounded-md border border-stone-200 bg-white p-5">
+        <ReactiveForm action={createProductAliasAction} className="rounded-md border border-stone-200 bg-white p-5" successText="映射已保存">
           <h2 className="font-semibold">新增别名</h2>
           <div className="mt-4 space-y-4">
             <div className="space-y-2">
@@ -58,7 +59,7 @@ export default async function ProductAliasesPage() {
             <Link2 className="h-4 w-4" />
             保存映射
           </Button>
-        </form>
+        </ReactiveForm>
 
         {aliases.length === 0 ? (
           <EmptyState title="暂无商品别名" description="当真实订单商品名和系统产品名不一致时，在这里建立映射。" />
@@ -86,13 +87,13 @@ export default async function ProductAliasesPage() {
                     <td className="px-4 py-3">{alias.products ? formatMoney(alias.products.sale_price) : "-"}</td>
                     <td className="px-4 py-3 text-stone-500">{alias.source ?? "-"}</td>
                     <td className="px-4 py-3">
-                      <form action={deleteProductAliasAction}>
+                      <ReactiveForm action={deleteProductAliasAction} successText="已删除">
                         <input type="hidden" name="alias_id" value={alias.id} />
                         <Button variant="secondary" size="sm">
                           <Trash2 className="h-4 w-4" />
                           删除
                         </Button>
-                      </form>
+                      </ReactiveForm>
                     </td>
                   </tr>
                 ))}

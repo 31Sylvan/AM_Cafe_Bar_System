@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { revalidateAndReturn } from "@/lib/actions/refresh";
+import { revalidatePaths } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -89,7 +89,7 @@ export async function voidPurchaseOrderAction(formData: FormData) {
   const purchaseOrderId = z.string().uuid().parse(formData.get("purchase_order_id"));
 
   if (!hasSupabaseEnv()) {
-    await revalidateAndReturn(["/purchases", "/inventory/items", "/inventory/movements"], "/purchases");
+    return await revalidatePaths(["/purchases", "/inventory/items", "/inventory/movements"]);
   }
 
   const supabase = await createClient();
@@ -99,5 +99,5 @@ export async function voidPurchaseOrderAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await revalidateAndReturn(["/purchases", "/inventory/items", "/inventory/movements"], "/purchases");
+  return await revalidatePaths(["/purchases", "/inventory/items", "/inventory/movements"]);
 }

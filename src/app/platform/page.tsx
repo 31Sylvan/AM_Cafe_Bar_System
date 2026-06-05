@@ -1,16 +1,14 @@
 import { Building2, ShieldCheck } from "lucide-react";
 import { AppShell, EmptyState, PageHeader } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { updatePlatformStoreStatusAction, updateStoreModuleEntitlementAction } from "@/lib/actions/platform";
 import { requirePlatformAdmin, requireProfile } from "@/lib/auth";
 import { getPlatformDashboardData } from "@/lib/data/platform";
 import { platformModules } from "@/lib/platform";
 import type { PlatformStoreOverview } from "@/lib/types";
+import { StoreModuleEntitlementCells, StoreModuleQuickForm, StoreStatusControl } from "./platform-live-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -111,30 +109,14 @@ export default async function PlatformPage() {
           <CardDescription>选择门店和模块，设置启用或关闭。未配置的模块默认视为启用，适合先快速上线，后续再按套餐收紧。</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateStoreModuleEntitlementAction} className="grid gap-3 lg:grid-cols-[1.2fr_1fr_160px_1.4fr_auto]">
-            <Select name="store_id" required>
-              <option value="">选择门店</option>
-              {data.stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.tenants?.name ?? store.tenant_id} · {store.name}
-                </option>
-              ))}
-            </Select>
-            <Select name="module_key" required>
-              <option value="">选择模块</option>
-              {platformModules.map((module) => (
-                <option key={module.key} value={module.key}>
-                  {module.name}
-                </option>
-              ))}
-            </Select>
-            <Select name="enabled" defaultValue="true" required>
-              <option value="true">开通</option>
-              <option value="false">关闭</option>
-            </Select>
-            <Input name="note" placeholder="备注，例如：专业版套餐" />
-            <Button>保存开通</Button>
-          </form>
+          <StoreModuleQuickForm
+            stores={data.stores.map((store) => ({
+              id: store.id,
+              label: `${store.tenants?.name ?? store.tenant_id} · ${store.name}`,
+            }))}
+            modules={platformModules.map((module) => ({ key: module.key, name: module.name }))}
+            action={updateStoreModuleEntitlementAction}
+          />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {platformModules.map((module) => (
@@ -192,16 +174,8 @@ function StoreRow({ store }: { store: PlatformStoreOverview }) {
           <div className="max-w-[260px] text-xs leading-5 text-stone-500">已关闭：{disabledModules.join("、")}</div>
         )}
       </TableCell>
-      <TableCell className="text-right">
-        <form action={updatePlatformStoreStatusAction} className="flex justify-end gap-2">
-          <input type="hidden" name="store_id" value={store.id} />
-          <Select name="status" defaultValue={store.status} className="w-28">
-            <option value="active">启用</option>
-            <option value="inactive">暂停</option>
-            <option value="disabled">停用</option>
-          </Select>
-          <Button size="sm" variant="secondary">保存</Button>
-        </form>
+      <TableCell>
+        <StoreStatusControl storeId={store.id} initialStatus={store.status} action={updatePlatformStoreStatusAction} />
       </TableCell>
     </TableRow>
   );
@@ -246,7 +220,6 @@ function StoreModuleMatrix({ store }: { store: PlatformStoreOverview }) {
           <TableBody>
             {platformModules.map((module) => {
               const entitlement = entitlementByModule.get(module.key);
-              const enabled = entitlement?.enabled ?? true;
               return (
                 <TableRow key={`${store.id}:${module.key}`}>
                   <TableCell>
@@ -254,29 +227,12 @@ function StoreModuleMatrix({ store }: { store: PlatformStoreOverview }) {
                     <div className="mt-1 font-mono text-xs text-stone-400">{module.key}</div>
                     <p className="mt-1 max-w-md text-xs leading-5 text-stone-500">{module.description}</p>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={enabled ? "success" : "danger"}>
-                      {entitlement ? (enabled ? "开通" : "关闭") : "默认开通"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[260px] text-sm text-stone-600">
-                    {entitlement?.note || "-"}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-sm text-stone-500">
-                    {entitlement?.updated_at ? new Date(entitlement.updated_at).toLocaleString("zh-CN") : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <form action={updateStoreModuleEntitlementAction} className="flex justify-end gap-2">
-                      <input type="hidden" name="store_id" value={store.id} />
-                      <input type="hidden" name="module_key" value={module.key} />
-                      <Select name="enabled" defaultValue={String(enabled)} className="w-28">
-                        <option value="true">开通</option>
-                        <option value="false">关闭</option>
-                      </Select>
-                      <Input name="note" defaultValue={entitlement?.note ?? ""} placeholder="备注" className="w-44" />
-                      <Button size="sm" variant="secondary">保存</Button>
-                    </form>
-                  </TableCell>
+                  <StoreModuleEntitlementCells
+                    storeId={store.id}
+                    moduleKey={module.key}
+                    entitlement={entitlement}
+                    action={updateStoreModuleEntitlementAction}
+                  />
                 </TableRow>
               );
             })}
