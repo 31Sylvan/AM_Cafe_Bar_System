@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { revalidateAndReturn } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -92,11 +93,7 @@ export async function voidSaleOrderAction(formData: FormData) {
   const salesOrderId = z.string().uuid().parse(formData.get("sales_order_id"));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/sales");
-    revalidatePath("/inventory/items");
-    revalidatePath("/inventory/movements");
-    revalidatePath("/finance/cashflow");
-    return;
+    await revalidateAndReturn(["/sales", "/inventory/items", "/inventory/movements", "/finance/cashflow"], "/sales");
   }
 
   const supabase = await createClient();
@@ -106,10 +103,7 @@ export async function voidSaleOrderAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/sales");
-  revalidatePath("/inventory/items");
-  revalidatePath("/inventory/movements");
-  revalidatePath("/finance/cashflow");
+  await revalidateAndReturn(["/sales", "/inventory/items", "/inventory/movements", "/finance/cashflow"], "/sales");
 }
 
 export async function createWasteRecordAction(formData: FormData) {

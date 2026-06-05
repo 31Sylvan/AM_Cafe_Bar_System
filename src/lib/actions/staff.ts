@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { revalidateAndReturn } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { createAdminClient, createClient, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -120,8 +121,7 @@ export async function createEmployeeAccountAction(formData: FormData) {
   const payload = employeeAccountSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/employees");
-    return;
+    await revalidateAndReturn(["/employees"], "/employees");
   }
 
   const supabase = await createClient();
@@ -157,8 +157,7 @@ export async function createEmployeeAccountAction(formData: FormData) {
   if (inviteError) throw new Error(inviteError.message);
 
   if (!hasSupabaseAdminEnv()) {
-    revalidatePath("/employees");
-    return;
+    await revalidateAndReturn(["/employees"], "/employees");
   }
 
   const admin = createAdminClient();
@@ -221,7 +220,7 @@ export async function createEmployeeAccountAction(formData: FormData) {
 
   if (updateInviteError) throw new Error(updateInviteError.message);
 
-  revalidatePath("/employees");
+  await revalidateAndReturn(["/employees"], "/employees");
 }
 
 export async function resetEmployeePasswordAction(formData: FormData) {
@@ -230,8 +229,7 @@ export async function resetEmployeePasswordAction(formData: FormData) {
   const payload = employeePasswordResetSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/employees");
-    return;
+    await revalidateAndReturn(["/employees"], "/employees");
   }
 
   if (!hasSupabaseAdminEnv()) {
@@ -261,5 +259,5 @@ export async function resetEmployeePasswordAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/employees");
+  await revalidateAndReturn(["/employees"], "/employees");
 }

@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { revalidateAndReturn } from "@/lib/actions/refresh";
 import { requirePermission, requireProfile } from "@/lib/auth";
 import { getDefaultPermissions, permissionCatalog, type PermissionKey } from "@/lib/permissions";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
@@ -25,8 +25,7 @@ export async function updateRolePermissionsAction(formData: FormData) {
   });
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/settings/permissions");
-    return;
+    await revalidateAndReturn(["/settings/permissions"], "/settings/permissions");
   }
 
   const supabase = await createClient();
@@ -53,8 +52,7 @@ export async function updateRolePermissionsAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/settings/permissions");
-  revalidatePath("/", "layout");
+  await revalidateAndReturn(["/settings/permissions", "/"], "/settings/permissions");
 }
 
 const memberOverrideSchema = z.object({
@@ -70,8 +68,7 @@ export async function upsertMemberPermissionOverrideAction(formData: FormData) {
   const payload = memberOverrideSchema.parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/settings/permissions");
-    return;
+    await revalidateAndReturn(["/settings/permissions"], "/settings/permissions");
   }
 
   const supabase = await createClient();
@@ -101,8 +98,7 @@ export async function upsertMemberPermissionOverrideAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/settings/permissions");
-  revalidatePath("/", "layout");
+  await revalidateAndReturn(["/settings/permissions", "/"], "/settings/permissions");
 }
 
 export async function deleteMemberPermissionOverrideAction(formData: FormData) {
@@ -115,8 +111,7 @@ export async function deleteMemberPermissionOverrideAction(formData: FormData) {
   }).parse(Object.fromEntries(formData));
 
   if (!hasSupabaseEnv()) {
-    revalidatePath("/settings/permissions");
-    return;
+    await revalidateAndReturn(["/settings/permissions"], "/settings/permissions");
   }
 
   const supabase = await createClient();
@@ -130,6 +125,5 @@ export async function deleteMemberPermissionOverrideAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/settings/permissions");
-  revalidatePath("/", "layout");
+  await revalidateAndReturn(["/settings/permissions", "/"], "/settings/permissions");
 }
