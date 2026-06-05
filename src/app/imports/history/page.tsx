@@ -68,7 +68,11 @@ export default async function ImportHistoryPage() {
                   <TableCell>
                     <Badge>{importTypeLabels[batch.import_type]}</Badge>
                   </TableCell>
-                  <TableCell className="max-w-[320px] truncate font-medium">{batch.source_file}</TableCell>
+                  <TableCell className="max-w-[320px] truncate font-medium">
+                    <Link href={`/imports/history/${batch.id}`} className="text-emerald-700 hover:underline">
+                      {batch.source_file}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={batch.status === "completed" ? "success" : "danger"}>
                       {batch.status === "completed" ? "已完成" : "失败"}
@@ -78,7 +82,15 @@ export default async function ImportHistoryPage() {
                   <TableCell className="text-right tabular-nums">{batch.imported_rows}</TableCell>
                   <TableCell className="text-right tabular-nums">{batch.skipped_rows}</TableCell>
                   <TableCell className="text-right tabular-nums">{batch.warning_count}</TableCell>
-                  <TableCell className="max-w-[360px] truncate text-stone-600">{batch.error_message ?? "-"}</TableCell>
+                  <TableCell className="max-w-[360px] truncate text-stone-600">
+                    {batch.error_message ? (
+                      <Link href={`/imports/history/${batch.id}`} className="hover:text-stone-950 hover:underline">
+                        {batch.error_message}
+                      </Link>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

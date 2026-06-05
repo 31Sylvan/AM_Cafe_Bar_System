@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { recordImportBatch } from "@/lib/data/import-batches";
+import { recordImportBatch, recordImportBatchIssues } from "@/lib/data/import-batches";
 import { previewProductCatalogWorkbook } from "@/lib/imports/product-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
   if (error) throw new Error(error.message);
 
-  await recordImportBatch(profile, {
+  const batch = await recordImportBatch(profile, {
     import_type: "products",
     source_file: file.name,
     status: "completed",
@@ -68,6 +68,21 @@ export async function POST(request: Request) {
     skipped_rows: preview.skippedCount,
     warning_count: preview.warnings.length,
   });
+  await recordImportBatchIssues(profile, batch?.id, [
+    ...preview.warnings.map((warning) => ({
+      severity: "warning" as const,
+      issue_type: "preview_warning",
+      entity_name: "商品导入",
+      message: warning,
+    })),
+    ...preview.skippedProducts.map((product) => ({
+      severity: "info" as const,
+      issue_type: "product_skipped",
+      entity_name: product.name || product.source_category || "空商品名",
+      message: `已跳过：${product.reason}`,
+      payload: product,
+    })),
+  ]);
 
   return NextResponse.json({
     mode: "supabase",

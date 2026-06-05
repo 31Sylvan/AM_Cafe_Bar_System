@@ -183,9 +183,21 @@ function BatchTable({
                     <TableCell>
                       <Badge>{importTypeLabels[batch.import_type]}</Badge>
                     </TableCell>
-                    <TableCell className="max-w-[180px] truncate font-medium">{batch.source_file}</TableCell>
+                    <TableCell className="max-w-[180px] truncate font-medium">
+                      <Link href={`/imports/history/${batch.id}`} className="text-emerald-700 hover:underline">
+                        {batch.source_file}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{batch.warning_count}</TableCell>
-                    <TableCell className="max-w-[220px] truncate text-stone-600">{batch.error_message ?? "-"}</TableCell>
+                    <TableCell className="max-w-[220px] truncate text-stone-600">
+                      {batch.error_message ? (
+                        <Link href={`/imports/history/${batch.id}`} className="hover:text-stone-950 hover:underline">
+                          {batch.error_message}
+                        </Link>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

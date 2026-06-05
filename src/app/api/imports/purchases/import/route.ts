@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { recordFailedImportBatch, recordImportBatch } from "@/lib/data/import-batches";
+import { recordFailedImportBatch, recordImportBatch, recordImportBatchIssues } from "@/lib/data/import-batches";
 import { previewPurchaseWorkbook, type NormalizedPurchaseImportLine } from "@/lib/imports/business-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
 
   if (missingItems.length > 0) {
-    await recordFailedImportBatch(profile, {
+    const batch = await recordFailedImportBatch(profile, {
       import_type: "purchases",
       source_file: file.name,
       total_rows: preview.totalRows,
@@ -71,6 +71,16 @@ export async function POST(request: Request) {
       warning_count: preview.warnings.length + missingItems.length,
       error_message: `采购导入已停止：缺少库存档案 ${missingItems.join("、")}`,
     });
+    await recordImportBatchIssues(
+      profile,
+      batch?.id,
+      missingItems.map((name) => ({
+        severity: "error",
+        issue_type: "inventory_item_missing",
+        entity_name: name,
+        message: `采购原料「${name}」没有库存档案，请先在库存中心创建或导入原料。`,
+      })),
+    );
 
     return NextResponse.json(
       {
@@ -127,7 +137,7 @@ export async function POST(request: Request) {
   revalidatePath("/inventory/movements");
   revalidatePath("/finance/cashflow");
 
-  await recordImportBatch(profile, {
+  const batch = await recordImportBatch(profile, {
     import_type: "purchases",
     source_file: file.name,
     status: "completed",
@@ -136,6 +146,26 @@ export async function POST(request: Request) {
     skipped_rows: preview.skippedCount,
     warning_count: preview.warnings.length,
   });
+  await recordImportBatchIssues(
+    profile,
+    batch?.id,
+    [
+      ...preview.warnings.map((warning) => ({
+        severity: "warning" as const,
+        issue_type: "preview_warning",
+        entity_name: "采购导入",
+        message: warning,
+      })),
+      ...preview.skippedRows.map((row) => ({
+        severity: "info" as const,
+        issue_type: "purchase_row_skipped",
+        entity_name: row.name || `第 ${row.rowNo} 行`,
+        row_no: row.rowNo,
+        message: `已跳过：${row.reason}`,
+        payload: row,
+      })),
+    ],
+  );
 
   return NextResponse.json({
     mode: "supabase",

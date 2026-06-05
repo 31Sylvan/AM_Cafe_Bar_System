@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { recordFailedImportBatch, recordImportBatch } from "@/lib/data/import-batches";
+import { recordFailedImportBatch, recordImportBatch, recordImportBatchIssues } from "@/lib/data/import-batches";
 import { demoProducts, demoRecipes } from "@/lib/demo-data";
 import { previewOrderWorkbooks, type NormalizedOrderLine } from "@/lib/imports/order-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
     .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
 
   if (missingProducts.length > 0) {
-    await recordFailedImportBatch(profile, {
+    const batch = await recordFailedImportBatch(profile, {
       import_type: "orders",
       source_file: files.map((file) => file.name).join(", "),
       total_rows: preview.lineCount,
@@ -162,6 +162,16 @@ export async function POST(request: Request) {
       warning_count: preview.warnings.length + missingProducts.length,
       error_message: `订单导入已停止：商品未匹配 ${missingProducts.join("、")}`,
     });
+    await recordImportBatchIssues(
+      profile,
+      batch?.id,
+      missingProducts.map((name) => ({
+        severity: "error",
+        issue_type: "product_not_matched",
+        entity_name: name,
+        message: `订单商品「${name}」未匹配到系统产品，请在商品别名映射中绑定后重新导入。`,
+      })),
+    );
 
     return NextResponse.json(
       {
@@ -208,7 +218,7 @@ export async function POST(request: Request) {
     .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
 
   if (missingRecipes.length > 0) {
-    await recordFailedImportBatch(profile, {
+    const batch = await recordFailedImportBatch(profile, {
       import_type: "orders",
       source_file: files.map((file) => file.name).join(", "),
       total_rows: preview.lineCount,
@@ -216,6 +226,16 @@ export async function POST(request: Request) {
       warning_count: preview.warnings.length + missingRecipes.length,
       error_message: `订单导入已停止：产品缺少配方 ${missingRecipes.join("、")}`,
     });
+    await recordImportBatchIssues(
+      profile,
+      batch?.id,
+      missingRecipes.map((name) => ({
+        severity: "error",
+        issue_type: "recipe_missing",
+        entity_name: name,
+        message: `产品「${name}」缺少配方，补齐后订单导入才能自动扣库存和计算理论成本。`,
+      })),
+    );
 
     return NextResponse.json(
       {
@@ -277,7 +297,7 @@ export async function POST(request: Request) {
     if (data?.id) importedOrderIds.push(data.id);
   }
 
-  await recordImportBatch(profile, {
+  const batch = await recordImportBatch(profile, {
     import_type: "orders",
     source_file: files.map((file) => file.name).join(", "),
     status: "completed",
@@ -286,6 +306,20 @@ export async function POST(request: Request) {
     skipped_rows: preview.skippedCount + duplicateOrderNos.size,
     warning_count: preview.warnings.length,
   });
+  await recordImportBatchIssues(profile, batch?.id, [
+    ...preview.warnings.map((warning) => ({
+      severity: "warning" as const,
+      issue_type: "preview_warning",
+      entity_name: "订单导入",
+      message: warning,
+    })),
+    ...Array.from(duplicateOrderNos).map((orderNo) => ({
+      severity: "info" as const,
+      issue_type: "duplicate_order",
+      entity_name: orderNo,
+      message: `订单「${orderNo}」已存在，本次自动跳过。`,
+    })),
+  ]);
 
   return NextResponse.json({
     mode: "supabase",

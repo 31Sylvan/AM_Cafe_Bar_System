@@ -111,6 +111,20 @@ export type ImportBatch = {
   created_at: string;
 };
 
+export type ImportBatchIssue = {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  import_batch_id: string;
+  severity: "info" | "warning" | "error";
+  issue_type: string;
+  entity_name: string;
+  message: string;
+  row_no: number | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
 export type InventoryBalance = {
   store_id: string;
   item_id: string;

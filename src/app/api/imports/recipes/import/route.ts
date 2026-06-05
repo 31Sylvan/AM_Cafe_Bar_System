@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { recordFailedImportBatch, recordImportBatch } from "@/lib/data/import-batches";
+import { recordFailedImportBatch, recordImportBatch, recordImportBatchIssues } from "@/lib/data/import-batches";
 import { previewRecipeWorkbook } from "@/lib/imports/business-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     .filter((item): item is string => Boolean(item));
 
   if (missingProducts.length > 0 || missingItems.length > 0 || unitMismatches.length > 0) {
-    await recordFailedImportBatch(profile, {
+    const batch = await recordFailedImportBatch(profile, {
       import_type: "recipes",
       source_file: file.name,
       total_rows: preview.totalRows,
@@ -79,6 +79,26 @@ export async function POST(request: Request) {
         unitMismatches.length > 0 ? `单位不一致：${unitMismatches.join("；")}` : "",
       ].filter(Boolean).join("；"),
     });
+    await recordImportBatchIssues(profile, batch?.id, [
+      ...missingProducts.map((name) => ({
+        severity: "error" as const,
+        issue_type: "product_missing",
+        entity_name: name,
+        message: `配方里的产品「${name}」不存在，请先导入或创建产品。`,
+      })),
+      ...missingItems.map((name) => ({
+        severity: "error" as const,
+        issue_type: "inventory_item_missing",
+        entity_name: name,
+        message: `配方里的原料「${name}」不存在，请先导入或创建库存原料。`,
+      })),
+      ...unitMismatches.map((mismatch) => ({
+        severity: "error" as const,
+        issue_type: "unit_mismatch",
+        entity_name: mismatch.split(":")[0] ?? "单位不一致",
+        message: mismatch,
+      })),
+    ]);
 
     return NextResponse.json(
       {
@@ -143,7 +163,7 @@ export async function POST(request: Request) {
   revalidatePath("/imports/orders");
 
   const warnings = [...preview.warnings, ...Array.from(new Set(duplicateWarnings)).slice(0, 20)];
-  await recordImportBatch(profile, {
+  const batch = await recordImportBatch(profile, {
     import_type: "recipes",
     source_file: file.name,
     status: "completed",
@@ -152,6 +172,26 @@ export async function POST(request: Request) {
     skipped_rows: preview.skippedCount,
     warning_count: warnings.length,
   });
+  await recordImportBatchIssues(
+    profile,
+    batch?.id,
+    [
+      ...warnings.map((warning) => ({
+        severity: "warning" as const,
+        issue_type: "preview_warning",
+        entity_name: "配方导入",
+        message: warning,
+      })),
+      ...preview.skippedRows.map((row) => ({
+        severity: "info" as const,
+        issue_type: "recipe_row_skipped",
+        entity_name: row.name || `第 ${row.rowNo} 行`,
+        row_no: row.rowNo,
+        message: `已跳过：${row.reason}`,
+        payload: row,
+      })),
+    ],
+  );
 
   return NextResponse.json({
     mode: "supabase",

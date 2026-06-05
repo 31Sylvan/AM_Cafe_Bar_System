@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requirePermission, requireProfile } from "@/lib/auth";
-import { recordImportBatch } from "@/lib/data/import-batches";
+import { recordImportBatch, recordImportBatchIssues } from "@/lib/data/import-batches";
 import { previewInventoryWorkbook } from "@/lib/imports/business-xls";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
   revalidatePath("/inventory/movements");
   revalidatePath("/stock-counts");
 
-  await recordImportBatch(profile, {
+  const batch = await recordImportBatch(profile, {
     import_type: "inventory",
     source_file: file.name,
     status: "completed",
@@ -131,6 +131,22 @@ export async function POST(request: Request) {
     skipped_rows: preview.skippedCount,
     warning_count: preview.warnings.length,
   });
+  await recordImportBatchIssues(profile, batch?.id, [
+    ...preview.warnings.map((warning) => ({
+      severity: "warning" as const,
+      issue_type: "preview_warning",
+      entity_name: "库存导入",
+      message: warning,
+    })),
+    ...preview.skippedRows.map((row) => ({
+      severity: "info" as const,
+      issue_type: "inventory_row_skipped",
+      entity_name: row.name || `第 ${row.rowNo} 行`,
+      row_no: row.rowNo,
+      message: `已跳过：${row.reason}`,
+      payload: row,
+    })),
+  ]);
 
   return NextResponse.json({
     mode: "supabase",
