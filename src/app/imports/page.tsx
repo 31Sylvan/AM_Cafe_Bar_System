@@ -21,6 +21,9 @@ export default async function ImportsPage() {
             <p className="mt-1 text-sm text-violet-900">先看导入就绪状态，再查看每次商品、库存、采购、配方和订单导入的结果。</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button asChild variant="secondary">
+              <Link href="/imports/templates">模板中心</Link>
+            </Button>
             <Button asChild>
               <Link href="/imports/readiness">查看试运行看板</Link>
             </Button>
@@ -98,7 +101,11 @@ export default async function ImportsPage() {
           <CardDescription>下载模板后按字段填入真实数据，再回到对应导入页上传。</CardDescription>
         </CardHeader>
         <CardContent>
+        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          真实试运行建议顺序：原料库存表 → 产品表 → 配方表 → 采购表 → 订单销售表。完整字段说明请进入模板中心。
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
+          <Button asChild size="sm"><Link href="/imports/templates">打开模板中心</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/inventory-items" prefetch={false}>原料模板</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/inventory-import" prefetch={false}>库存导入模板</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link href="/api/templates/products" prefetch={false}>产品模板</Link></Button>

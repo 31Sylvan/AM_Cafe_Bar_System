@@ -151,6 +151,12 @@ const checks = [
     expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
   },
   {
+    name: "import templates protected route",
+    url: "/imports/templates",
+    options: {},
+    expect: (body) => body.includes("Coffee Shop OS") && body.includes("登录"),
+  },
+  {
     name: "trial validation export protected route",
     url: "/api/export/trial-validation",
     options: {},
@@ -195,6 +201,16 @@ const checks = [
       },
     },
     expect: (body) => body.includes("actual_qty") && body.includes("中深烘咖啡豆"),
+  },
+  {
+    name: "purchase template demo auth",
+    url: "/api/templates/purchases",
+    options: {
+      headers: {
+        cookie: "coffee-shop-os-demo-auth=owner",
+      },
+    },
+    expect: (body) => body.includes("supplier,purchase_date,payment_method,item_name,qty,unit_price") && body.includes("本地烘焙商"),
   },
   {
     name: "recipe template demo auth",

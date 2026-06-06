@@ -16,6 +16,7 @@ const modules = [
   "src/lib/imports/csv.ts",
   "src/lib/imports/validate.ts",
   "src/lib/imports/order-xls.ts",
+  "src/lib/import-templates.ts",
   "src/lib/export/business-analysis-xlsx.ts",
 ];
 
@@ -61,6 +62,7 @@ async function run() {
   const { toCsv } = requireTemp("lib/export/csv");
   const { validateImportCsv } = requireTemp("lib/imports/validate");
   const { previewOrderWorkbooks } = requireTemp("lib/imports/order-xls");
+  const { importTemplateDefinitions } = requireTemp("lib/import-templates");
   const { buildBusinessAnalysisXlsx } = requireTemp("lib/export/business-analysis-xlsx");
 
   assertDeepEqual(parseCsv('\uFEFFname,note\n"拿铁,热","奶泡""厚"""').rows[0], {
@@ -84,6 +86,14 @@ async function run() {
   assertEqual(invalidInventory.validRows, 0, "inventory import validation rejects invalid rows");
   assert(invalidInventory.errors.some((error) => error.includes("unit 与 category 不匹配")), "inventory validation catches category/unit mismatch");
   assert(invalidInventory.errors.some((error) => error.includes("原料名称重复")), "inventory validation catches duplicate names");
+
+  const purchaseTemplate = importTemplateDefinitions.find((template) => template.key === "purchases");
+  assert(purchaseTemplate, "purchase template exists");
+  assertDeepEqual(
+    purchaseTemplate.fields.map((field) => field.key),
+    ["supplier", "purchase_date", "payment_method", "item_name", "qty", "unit_price"],
+    "purchase template includes payment method in expected order",
+  );
 
   const orderPreview = await previewOrderWorkbooks([orderWorkbookFile()]);
   assertEqual(orderPreview.orderCount, 1, "order workbook preview counts completed paid orders");
